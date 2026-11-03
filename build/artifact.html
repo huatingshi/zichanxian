@@ -132,7 +132,9 @@ button.row:active { opacity: 0.6; }
 .day .rows .row:first-child::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: var(--line); }
 @media (prefers-reduced-motion: reduce) { .dayh svg { transition: none; } }
 .empty { padding: 28px 0; color: var(--ink-3); font-size: 14px; line-height: 1.7; }
-.more { margin-top: 12px; align-self: flex-start; font-size: 15px; font-weight: 600; color: var(--ink); height: 40px; }
+.more-row { display: flex; align-items: center; gap: 24px; margin-top: 6px; border-top: 1px solid var(--line); padding-top: 6px; }
+.more { font-size: 15px; font-weight: 600; color: var(--ink); height: 44px; }
+.more.mute { color: var(--ink-3); font-weight: 500; }
 .filepick { position: relative; }
 .filepick input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
@@ -298,7 +300,7 @@ button.row:active { opacity: 0.6; }
       </div>
       <div class="list-meta"><span id="listMeta"></span><button class="tbtn mute" id="expandAll" type="button" hidden>全部展开</button></div>
       <div id="list" style="margin-top: 6px;"></div>
-      <button class="more" id="moreBtn" type="button" hidden>显示更早的记录</button>
+      <div class="more-row" id="moreRow" hidden><button class="more" id="moreBtn" type="button">显示更多</button><button class="more mute" id="lessBtn" type="button" hidden>收起</button></div>
     </section>
 
     <section class="sec">
@@ -337,6 +339,7 @@ button.row:active { opacity: 0.6; }
     <section class="sec" id="catTxBox" hidden>
       <div class="sec-h"><h2 id="catTxTitle">明细</h2></div>
       <div id="catTxList"></div>
+      <div class="more-row" id="catMoreRow" hidden><button class="more" id="catMoreBtn" type="button">显示更多</button><button class="more mute" id="catLessBtn" type="button" hidden>收起</button></div>
     </section>
     <p class="fine">点分类查看明细。分类不对的话，点那笔交易改掉，还可以让同一商户以后都用这个分类。</p>
   </section>
@@ -834,7 +837,9 @@ function bigMoney(target, c) {
 }
 
 /* ---------------- trend view ---------------- */
-let range = '1m', filter = 'all', listLimit = 30, hover = null, view = null, tab = 'trend';
+/* the ledger shows this many days at first; 显示更多 adds DAYS_MORE at a time */
+const DAYS_FIRST = 5, DAYS_MORE = 15;
+let range = '1m', filter = 'all', listLimit = DAYS_FIRST, hover = null, view = null, tab = 'trend';
 try { const r = localStorage.getItem(LS_KEY + ':range'); if (r) range = r; const tb = localStorage.getItem(LS_KEY + ':tab'); if (tb) tab = tb; } catch (e) {}
 
 function rangeStart(now) {
@@ -1030,22 +1035,30 @@ function renderList() {
   }
   if (filter !== 'off') for (const a of derived.anchorRecs) if (a.anchor.t > view.t0 && a.anchor.t <= view.t1) items.push({ t: a.anchor.t, a });
   items.sort((p, q) => q.t - p.t);
-  if (!items.length) { list.textContent = ''; list.append(el('div', 'empty', state.tx.length ? '这个时间范围里没有记录。' : '还没有记录。点右上角导入账单，或点底部中间的笔记一笔。')); $('#moreBtn').hidden = true; $('#listMeta').textContent = ''; $('#expandAll').hidden = true; return; }
+  if (!items.length) { list.textContent = ''; list.append(el('div', 'empty', state.tx.length ? '这个时间范围里没有记录。' : '还没有记录。点右上角导入账单，或点底部中间的笔记一笔。')); $('#moreRow').hidden = true; $('#listMeta').textContent = ''; $('#expandAll').hidden = true; return; }
   const nDays = renderDays(list, items, listLimit);
   const nTx = items.filter((it) => it.r).length;
   $('#listMeta').textContent = `${nTx} 笔 · ${nDays} 天`;
-  $('#moreBtn').hidden = nDays <= listLimit;
+  setMoreRow($('#moreRow'), nDays, listLimit);
   updateExpandAll();
 }
 document.addEventListener('click', (e) => { const b = e.target.closest('.row'); if (b && b._item) openTx(b._item); });
-$('#moreBtn').addEventListener('click', () => { listLimit += 30; renderList(); });
+function setMoreRow(row, nDays, limit) {
+  const rest = nDays - limit;
+  row.hidden = rest <= 0 && limit <= DAYS_FIRST;
+  const more = row.querySelector('.more:not(.mute)'); const less = row.querySelector('.more.mute');
+  more.hidden = rest <= 0; more.textContent = `显示更多 · 还有 ${rest} 天`;
+  less.hidden = limit <= DAYS_FIRST;
+}
+$('#moreBtn').addEventListener('click', () => { listLimit += DAYS_MORE; renderList(); });
+$('#lessBtn').addEventListener('click', () => { listLimit = DAYS_FIRST; renderList(); $('#list').closest('.sec').scrollIntoView({ block: 'start' }); });
 $('#filters').addEventListener('click', (e) => {
-  const b = e.target.closest('button'); if (!b) return; filter = b.dataset.f; listLimit = 30;
+  const b = e.target.closest('button'); if (!b) return; filter = b.dataset.f; listLimit = DAYS_FIRST;
   for (const x of $('#filters').children) x.setAttribute('aria-selected', String(x === b));
   renderList();
 });
 $('#ranges').addEventListener('click', (e) => {
-  const b = e.target.closest('button'); if (!b) return; range = b.dataset.r; listLimit = 30;
+  const b = e.target.closest('button'); if (!b) return; range = b.dataset.r; listLimit = DAYS_FIRST;
   try { localStorage.setItem(LS_KEY + ':range', range); } catch (er) {}
   renderTrend();
 });
@@ -1491,7 +1504,7 @@ $('#qaSave').addEventListener('click', () => {
 });
 
 /* ---------------- categories tab ---------------- */
-let catRange = 'month', catKind = 'out', selCat = null;
+let catRange = 'month', catKind = 'out', selCat = null, catLimit = DAYS_FIRST;
 const PERIOD_LABEL = { month: '本月', last: '上月', '3m': '近3月', year: '今年', all: '全部' };
 function catPeriod() {
   const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
@@ -1540,7 +1553,7 @@ function renderCats() {
       p.setAttribute('stroke', 'var(--bg)'); p.setAttribute('stroke-width', '2'); p.setAttribute('stroke-linejoin', 'round');
       if (selCat && (selCat === s.id || s.ids.includes(selCat))) p.classList.add('on');
       const title = document.createElementNS(NS, 'title'); title.textContent = (s.id === '_fold' ? '其他各类' : CATS[s.id].n) + ' ¥' + fmtMoney(s.v) + '（' + (s.v / total * 100).toFixed(1) + '%）'; p.append(title);
-      p.addEventListener('click', () => { selCat = selCat === s.id ? null : s.id; renderCats(); });
+      p.addEventListener('click', () => { selCat = selCat === s.id ? null : s.id; catLimit = DAYS_FIRST; renderCats(); });
       svg.append(p); ang = a1;
     }
   }
@@ -1564,7 +1577,7 @@ function renderCats() {
     const m = el('span', 'row-m'); m.append(t);
     const r = el('span', 'row-r'); r.append(el('span', 'row-a', fmtMoney(v)), el('span', 'row-x', (v / total * 100).toFixed(1) + '%'));
     b.append(m, r);
-    b.addEventListener('click', () => { selCat = selCat === id ? null : id; renderCats(); });
+    b.addEventListener('click', () => { selCat = selCat === id ? null : id; catLimit = DAYS_FIRST; renderCats(); });
     lg.append(b);
   }
   const box = $('#catTxBox');
@@ -1572,9 +1585,11 @@ function renderCats() {
     const ids = selCat === '_fold' ? foldIds : [selCat];
     const items = recs.filter((r) => ids.includes(r.cat)).sort((p, q) => q.x.t - p.x.t).map((r) => ({ t: r.x.t, r }));
     $('#catTxTitle').textContent = (selCat === '_fold' ? '其他各类' : CATS[selCat].n) + ' · ' + items.length + ' 笔';
-    renderDays($('#catTxList'), items, 400); box.hidden = false;
+    const nDays = renderDays($('#catTxList'), items, catLimit); setMoreRow($('#catMoreRow'), nDays, catLimit); box.hidden = false;
   } else box.hidden = true;
 }
+$('#catMoreBtn').addEventListener('click', () => { catLimit += DAYS_MORE; renderCats(); });
+$('#catLessBtn').addEventListener('click', () => { catLimit = DAYS_FIRST; renderCats(); $('#catTxBox').scrollIntoView({ block: 'start' }); });
 $('#catRanges').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catRange = b.dataset.r; selCat = null; renderCats(); });
 $('#catKind').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catKind = b.dataset.k; selCat = null; renderCats(); });
 

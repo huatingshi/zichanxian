@@ -16,7 +16,9 @@ function bigMoney(target, c) {
 }
 
 /* ---------------- trend view ---------------- */
-let range = '1m', filter = 'all', listLimit = 30, hover = null, view = null, tab = 'trend';
+/* the ledger shows this many days at first; 显示更多 adds DAYS_MORE at a time */
+const DAYS_FIRST = 5, DAYS_MORE = 15;
+let range = '1m', filter = 'all', listLimit = DAYS_FIRST, hover = null, view = null, tab = 'trend';
 try { const r = localStorage.getItem(LS_KEY + ':range'); if (r) range = r; const tb = localStorage.getItem(LS_KEY + ':tab'); if (tb) tab = tb; } catch (e) {}
 
 function rangeStart(now) {
@@ -212,22 +214,30 @@ function renderList() {
   }
   if (filter !== 'off') for (const a of derived.anchorRecs) if (a.anchor.t > view.t0 && a.anchor.t <= view.t1) items.push({ t: a.anchor.t, a });
   items.sort((p, q) => q.t - p.t);
-  if (!items.length) { list.textContent = ''; list.append(el('div', 'empty', state.tx.length ? '这个时间范围里没有记录。' : '还没有记录。点右上角导入账单，或点底部中间的笔记一笔。')); $('#moreBtn').hidden = true; $('#listMeta').textContent = ''; $('#expandAll').hidden = true; return; }
+  if (!items.length) { list.textContent = ''; list.append(el('div', 'empty', state.tx.length ? '这个时间范围里没有记录。' : '还没有记录。点右上角导入账单，或点底部中间的笔记一笔。')); $('#moreRow').hidden = true; $('#listMeta').textContent = ''; $('#expandAll').hidden = true; return; }
   const nDays = renderDays(list, items, listLimit);
   const nTx = items.filter((it) => it.r).length;
   $('#listMeta').textContent = `${nTx} 笔 · ${nDays} 天`;
-  $('#moreBtn').hidden = nDays <= listLimit;
+  setMoreRow($('#moreRow'), nDays, listLimit);
   updateExpandAll();
 }
 document.addEventListener('click', (e) => { const b = e.target.closest('.row'); if (b && b._item) openTx(b._item); });
-$('#moreBtn').addEventListener('click', () => { listLimit += 30; renderList(); });
+function setMoreRow(row, nDays, limit) {
+  const rest = nDays - limit;
+  row.hidden = rest <= 0 && limit <= DAYS_FIRST;
+  const more = row.querySelector('.more:not(.mute)'); const less = row.querySelector('.more.mute');
+  more.hidden = rest <= 0; more.textContent = `显示更多 · 还有 ${rest} 天`;
+  less.hidden = limit <= DAYS_FIRST;
+}
+$('#moreBtn').addEventListener('click', () => { listLimit += DAYS_MORE; renderList(); });
+$('#lessBtn').addEventListener('click', () => { listLimit = DAYS_FIRST; renderList(); $('#list').closest('.sec').scrollIntoView({ block: 'start' }); });
 $('#filters').addEventListener('click', (e) => {
-  const b = e.target.closest('button'); if (!b) return; filter = b.dataset.f; listLimit = 30;
+  const b = e.target.closest('button'); if (!b) return; filter = b.dataset.f; listLimit = DAYS_FIRST;
   for (const x of $('#filters').children) x.setAttribute('aria-selected', String(x === b));
   renderList();
 });
 $('#ranges').addEventListener('click', (e) => {
-  const b = e.target.closest('button'); if (!b) return; range = b.dataset.r; listLimit = 30;
+  const b = e.target.closest('button'); if (!b) return; range = b.dataset.r; listLimit = DAYS_FIRST;
   try { localStorage.setItem(LS_KEY + ':range', range); } catch (er) {}
   renderTrend();
 });

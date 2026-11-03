@@ -100,7 +100,7 @@ $('#qaSave').addEventListener('click', () => {
 });
 
 /* ---------------- categories tab ---------------- */
-let catRange = 'month', catKind = 'out', selCat = null;
+let catRange = 'month', catKind = 'out', selCat = null, catLimit = DAYS_FIRST;
 const PERIOD_LABEL = { month: '本月', last: '上月', '3m': '近3月', year: '今年', all: '全部' };
 function catPeriod() {
   const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
@@ -149,7 +149,7 @@ function renderCats() {
       p.setAttribute('stroke', 'var(--bg)'); p.setAttribute('stroke-width', '2'); p.setAttribute('stroke-linejoin', 'round');
       if (selCat && (selCat === s.id || s.ids.includes(selCat))) p.classList.add('on');
       const title = document.createElementNS(NS, 'title'); title.textContent = (s.id === '_fold' ? '其他各类' : CATS[s.id].n) + ' ¥' + fmtMoney(s.v) + '（' + (s.v / total * 100).toFixed(1) + '%）'; p.append(title);
-      p.addEventListener('click', () => { selCat = selCat === s.id ? null : s.id; renderCats(); });
+      p.addEventListener('click', () => { selCat = selCat === s.id ? null : s.id; catLimit = DAYS_FIRST; renderCats(); });
       svg.append(p); ang = a1;
     }
   }
@@ -173,7 +173,7 @@ function renderCats() {
     const m = el('span', 'row-m'); m.append(t);
     const r = el('span', 'row-r'); r.append(el('span', 'row-a', fmtMoney(v)), el('span', 'row-x', (v / total * 100).toFixed(1) + '%'));
     b.append(m, r);
-    b.addEventListener('click', () => { selCat = selCat === id ? null : id; renderCats(); });
+    b.addEventListener('click', () => { selCat = selCat === id ? null : id; catLimit = DAYS_FIRST; renderCats(); });
     lg.append(b);
   }
   const box = $('#catTxBox');
@@ -181,9 +181,11 @@ function renderCats() {
     const ids = selCat === '_fold' ? foldIds : [selCat];
     const items = recs.filter((r) => ids.includes(r.cat)).sort((p, q) => q.x.t - p.x.t).map((r) => ({ t: r.x.t, r }));
     $('#catTxTitle').textContent = (selCat === '_fold' ? '其他各类' : CATS[selCat].n) + ' · ' + items.length + ' 笔';
-    renderDays($('#catTxList'), items, 400); box.hidden = false;
+    const nDays = renderDays($('#catTxList'), items, catLimit); setMoreRow($('#catMoreRow'), nDays, catLimit); box.hidden = false;
   } else box.hidden = true;
 }
+$('#catMoreBtn').addEventListener('click', () => { catLimit += DAYS_MORE; renderCats(); });
+$('#catLessBtn').addEventListener('click', () => { catLimit = DAYS_FIRST; renderCats(); $('#catTxBox').scrollIntoView({ block: 'start' }); });
 $('#catRanges').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catRange = b.dataset.r; selCat = null; renderCats(); });
 $('#catKind').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catKind = b.dataset.k; selCat = null; renderCats(); });
 
