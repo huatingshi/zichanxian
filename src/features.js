@@ -1,43 +1,78 @@
 
 /* ---------------- import flow ---------------- */
-let staged = null;
+/* Each file waiting to be imported: { name, file, pw, res, err, needPw, mailId, note } */
+let pending = [], staged = null;
 function openImport() {
-  staged = null; $('#fileInput').value = ''; $('#fileList').textContent = ''; $('#stageBox').hidden = true;
-  $('#parseBtn').disabled = true; $('#saveImportBtn').disabled = true; $('#anchorInput').value = '';
-  openSheet('#importSheet');
+  pending = []; staged = null; $('#fileInput').value = ''; $('#stageBox').hidden = true;
+  $('#saveImportBtn').disabled = true; $('#anchorInput').value = '';
+  const cfg = mailCfg();
+  $('#mailFetchBtn').hidden = !cfg || IN_CLAUDE;
+  $('#impHint').textContent = cfg && !IN_CLAUDE
+    ? '点「从邮箱获取」取回账单邮箱里的新账单，也可以选手机上的文件。'
+    : '微信 .xlsx、支付宝 .csv、中国银行 .pdf，或邮箱收到的 .zip，可多选。在 QQ 邮箱里打开附件，选「存储到文件」。';
+  renderPending(); openSheet('#importSheet');
 }
 $('#importBtn').addEventListener('click', openImport);
 $('#importRow').addEventListener('click', openImport);
+function addPending(file, extra) {
+  if (pending.some((p) => p.name === file.name && p.file.size === file.size && (!extra || p.mailId === extra.mailId))) return false;
+  pending.push(Object.assign({ name: file.name, file, pw: '', res: null, err: null, needPw: false }, extra || {}));
+  return true;
+}
+function renderPending() {
+  const fl = $('#fileList'); fl.textContent = '';
+  for (const p of pending) {
+    const d = el('div', 'fileres');
+    d.append(el('div', 'fn', p.name));
+    if (p.note) d.append(el('div', 'src', p.note));
+    if (p.res) for (const line of p.res.lines) d.append(el('div', 'ok', line));
+    if (p.err) d.append(el('div', p.needPw && !/不对/.test(p.err) ? 'src' : 'err', p.err));
+    if (p.needPw) {
+      const inp = el('input'); inp.type = 'text'; inp.value = p.pw; inp.placeholder = '这个文件的密码';
+      inp.autocomplete = 'off'; inp.setAttribute('autocapitalize', 'off'); inp.spellcheck = false; inp.setAttribute('aria-label', p.name + ' 的密码');
+      inp.addEventListener('input', () => { p.pw = inp.value; });
+      d.append(inp);
+    }
+    fl.append(d);
+  }
+  const todo = pending.filter((p) => !p.res).length;
+  $('#parseBtn').disabled = !todo;
+  $('#parseBtn').textContent = pending.length && !todo ? '已全部解析' : '解析';
+}
 $('#fileInput').addEventListener('change', () => {
-  const fl = $('#fileList'); fl.textContent = ''; staged = null; $('#stageBox').hidden = true; $('#saveImportBtn').disabled = true;
-  const files = Array.from($('#fileInput').files || []);
-  for (const f of files) { const d = el('div', 'fileres'); d.append(el('div', 'fn', f.name)); fl.append(d); }
-  $('#parseBtn').disabled = !files.length;
+  for (const f of Array.from($('#fileInput').files || [])) addPending(f);
+  $('#fileInput').value = ''; renderPending();
 });
 $('#parseBtn').addEventListener('click', async () => {
-  const files = Array.from($('#fileInput').files || []); if (!files.length) return;
-  const pw = $('#pwInput').value.trim();
   const btn = $('#parseBtn'); btn.disabled = true; btn.textContent = ''; btn.append(el('span', 'spinner'), document.createTextNode('解析中'));
-  const fl = $('#fileList'); fl.textContent = '';
-  const existing = new Set(state.sample ? [] : state.tx.map((x) => x.id));
-  const newTx = new Map();
-  for (const f of files) {
-    const d = el('div', 'fileres'); d.append(el('div', 'fn', f.name)); fl.append(d);
+  for (const p of pending) {
+    if (p.res) continue;
     try {
-      const bytes = new Uint8Array(await f.arrayBuffer());
-      const res = await parseBytes(bytes, f.name, pw, 0);
-      for (const r of res) {
-        let added = 0, minT = Infinity, maxT = -Infinity;
-        for (const x of r.tx) { if (x.t < minT) minT = x.t; if (x.t > maxT) maxT = x.t; if (!existing.has(x.id) && !newTx.has(x.id)) { newTx.set(x.id, x); added++; } }
-        const label = r.src === 'bank' ? r.bank : SRC_NAME[r.src];
-        d.append(el('div', 'ok', r.tx.length ? `${label}：${fmtDate(minT, true)} 至 ${fmtDate(maxT, true)}，共 ${r.tx.length} 笔，新增 ${added} 笔` : `${label}：没有交易记录`));
-      }
+      const bytes = new Uint8Array(await p.file.arrayBuffer());
+      p.res = { results: await parseBytes(bytes, p.name, p.pw.trim(), 0), lines: [] }; p.err = null; p.needPw = false;
     } catch (e) {
-      d.append(el('div', 'err', (e && e.message) || String(e)));
+      p.err = (e && e.message) || String(e); p.needPw = !!(e && e.code === 'pw');
     }
   }
-  btn.textContent = '重新解析'; btn.disabled = false;
-  staged = { tx: Array.from(newTx.values()) };
+  buildStaged(); renderPending();
+  const first = $('#fileList input'); if (first) first.focus();
+});
+function buildStaged() {
+  const existing = new Set(state.sample ? [] : state.tx.map((x) => x.id));
+  const newTx = new Map();
+  for (const p of pending) {
+    if (!p.res) continue;
+    p.res.lines = [];
+    for (const r of p.res.results) {
+      let added = 0, minT = Infinity, maxT = -Infinity;
+      for (const x of r.tx) { if (x.t < minT) minT = x.t; if (x.t > maxT) maxT = x.t; if (!existing.has(x.id) && !newTx.has(x.id)) { newTx.set(x.id, x); added++; } }
+      const label = r.src === 'bank' ? r.bank : SRC_NAME[r.src];
+      p.res.lines.push(r.tx.length ? `${label}：${fmtDate(minT, true)} 至 ${fmtDate(maxT, true)}，共 ${r.tx.length} 笔，新增 ${added} 笔` : `${label}：没有交易记录`);
+    }
+  }
+  const okCount = pending.filter((p) => p.res).length;
+  if (!okCount) { staged = null; $('#stageBox').hidden = true; $('#saveImportBtn').disabled = true; return; }
+  staged = { tx: Array.from(newTx.values()), mailIds: pending.filter((p) => p.res && p.mailId).map((p) => p.mailId) };
   const hasAnchors = !state.sample && state.anchors.length > 0;
   $('#stageBox').hidden = false;
   if (hasAnchors) {
@@ -47,9 +82,8 @@ $('#parseBtn').addEventListener('click', async () => {
   } else {
     $('#anchorHint').textContent = '把微信零钱、支付宝余额和余额宝、银行卡余额加起来填一个数。曲线以它为终点，按账单往回推算每一天的资产。';
   }
-  $('#saveImportBtn').disabled = !(staged.tx.length || hasAnchors);
-  if (!staged.tx.length) toast('没有新的交易记录');
-});
+  $('#saveImportBtn').disabled = !(staged.tx.length || hasAnchors || staged.mailIds.length);
+}
 $('#saveImportBtn').addEventListener('click', () => {
   if (!staged) return;
   const v = parseMoneyInput($('#anchorInput').value);
@@ -57,10 +91,68 @@ $('#saveImportBtn').addEventListener('click', () => {
   if (needAnchor && v == null) { toast('请填写现在的总资产'); $('#anchorInput').focus(); return; }
   leaveSample();
   state.tx = state.tx.concat(staged.tx);
+  if (staged.mailIds.length) state.mailSeen = (state.mailSeen || []).concat(staged.mailIds).slice(-1000);
   derive();
   if (v != null) { const pred = derived.bal(Date.now()); if (needAnchor || Math.abs(pred - v) >= 1) state.anchors.push({ t: Date.now(), v }); }
   const n = staged.tx.length; staged = null;
-  saveState(); closeSheet(); renderAll(); toast(`已导入 ${n} 笔`);
+  saveState(); closeSheet(); renderAll(); toast(n ? `已导入 ${n} 笔` : '已保存');
+});
+
+/* ---------------- mail sync (your own server, see server/) ---------------- */
+const MAIL_KEY = LS_KEY + ':mail';
+function mailCfg() { try { const c = JSON.parse(localStorage.getItem(MAIL_KEY) || 'null'); return c && c.url && c.token ? c : null; } catch (e) { return null; } }
+async function mailApi(cfg, path, as) {
+  let res;
+  try { res = await fetch(cfg.url.replace(/\/+$/, '') + path, { headers: { Authorization: 'Bearer ' + cfg.token }, cache: 'no-store' }); }
+  catch (e) { throw new Error('连不上服务器，检查地址和网络，或确认服务器上的服务在运行'); }
+  if (!res.ok) { let msg = '服务器返回错误 ' + res.status; try { const j = await res.json(); if (j.error) msg = j.error; } catch (e) {} throw new Error(msg); }
+  return as === 'blob' ? res.blob() : res.json();
+}
+function renderMailRow() {
+  const cfg = mailCfg();
+  $('#mailRowSub').textContent = IN_CLAUDE ? '只能在网页版 huatingshi.github.io/zichanxian 里使用'
+    : cfg ? '已连接 ' + cfg.url.replace(/^https?:\/\//, '') + (cfg.mailbox ? ' · ' + cfg.mailbox : '') : '连接你服务器上的邮箱同步服务，一键取账单';
+}
+$('#mailRow').addEventListener('click', () => {
+  const cfg = mailCfg();
+  $('#mlUrl').value = cfg ? cfg.url : ''; $('#mlToken').value = cfg ? cfg.token : '';
+  $('#mlStatus').textContent = IN_CLAUDE ? 'Claude 里的版本不允许连接其他网站，请在网页版 huatingshi.github.io/zichanxian 里设置。' : '';
+  $('#mlSave').disabled = IN_CLAUDE; $('#mlClear').hidden = !cfg;
+  openSheet('#mailSheet');
+});
+$('#mlSave').addEventListener('click', async () => {
+  let url = $('#mlUrl').value.trim(); const token = $('#mlToken').value.trim();
+  if (url && !/^https?:\/\//.test(url)) url = 'https://' + url;
+  if (!/^https:\/\/[^/\s]+/.test(url)) { $('#mlStatus').textContent = '服务地址要以 https:// 开头，例如 https://bills.example.com'; return; }
+  if (token.length < 24) { $('#mlStatus').textContent = '访问口令不完整，请把安装脚本最后显示的那一整串复制过来'; return; }
+  const btn = $('#mlSave'); btn.disabled = true; $('#mlStatus').textContent = '正在连接…';
+  try {
+    const list = await mailApi({ url, token }, '/api/attachments');
+    try { localStorage.setItem(MAIL_KEY, JSON.stringify({ url: url.replace(/\/+$/, ''), token, mailbox: list.mailbox || '' })); } catch (e) {}
+    $('#mlStatus').textContent = `连接成功：${list.mailbox || '账单邮箱'} 最近 ${list.days || ''} 天里有 ${list.items.length} 个账单附件。`;
+    $('#mlClear').hidden = false; renderMailRow(); toast('邮箱同步已连接');
+  } catch (e) { $('#mlStatus').textContent = e.message; }
+  btn.disabled = false;
+});
+$('#mlClear').addEventListener('click', () => {
+  try { localStorage.removeItem(MAIL_KEY); } catch (e) {}
+  renderMailRow(); closeSheet(); toast('已断开邮箱同步');
+});
+$('#mailFetchBtn').addEventListener('click', async () => {
+  const cfg = mailCfg(); if (!cfg) return;
+  const btn = $('#mailFetchBtn'); btn.disabled = true; btn.textContent = ''; btn.append(el('span', 'spinner'), document.createTextNode('获取中'));
+  try {
+    const list = await mailApi(cfg, '/api/attachments');
+    const seen = new Set(state.sample ? [] : state.mailSeen || []);
+    const fresh = list.items.filter((a) => !seen.has(a.id) && !pending.some((p) => p.mailId === a.id));
+    for (const a of fresh) {
+      const blob = await mailApi(cfg, '/api/attachments/' + encodeURIComponent(a.id), 'blob');
+      addPending(new File([blob], a.name), { mailId: a.id, note: '来自邮箱 · ' + (a.date ? fmtDT(a.date) : '') + (a.subject ? ' · ' + a.subject : '') });
+    }
+    renderPending();
+    toast(fresh.length ? `取回 ${fresh.length} 个新账单，点「解析」` : '邮箱里没有新的账单');
+  } catch (e) { toast(e.message); }
+  btn.disabled = false; btn.textContent = '从邮箱获取';
 });
 
 /* ---------------- quick add ---------------- */
@@ -467,7 +559,7 @@ $('#tabbar').addEventListener('click', (e) => { const b = e.target.closest('butt
 function renderAll() {
   derive();
   applyTab();
-  renderTrend(); renderCats(); renderRepay(); renderSubs();
+  renderTrend(); renderCats(); renderRepay(); renderSubs(); renderMailRow();
 }
 
 /* ---------------- boot ---------------- */

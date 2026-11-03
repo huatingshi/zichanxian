@@ -1,4 +1,5 @@
 /* ---------------- parsing ---------------- */
+function pwError(msg) { const e = new Error(msg); e.code = 'pw'; return e; }
 function detectKind(bytes) {
   if (bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46) return 'pdf';
   if (bytes[0] === 0x50 && bytes[1] === 0x4B) return 'zip';
@@ -85,7 +86,7 @@ async function parsePdf(bytes, password) {
   let doc;
   try { doc = await lib.getDocument({ data: bytes, password: password || undefined, isEvalSupported: false, disableFontFace: true }).promise; }
   catch (e) {
-    if (e && e.name === 'PasswordException') throw new Error(password ? 'PDF 密码不对。' : '这个 PDF 有密码，请在下面填写密码后再解析。');
+    if (e && e.name === 'PasswordException') throw pwError(password ? 'PDF 密码不对，请重新填写。' : '这个 PDF 有密码，填写后再点解析。');
     throw new Error('PDF 打不开：' + (e && e.message || e));
   }
   const lines = []; let fullText = '';
@@ -171,10 +172,10 @@ async function parseBytes(bytes, name, password, depth) {
   for (const e of entries) {
     if (e.directory) continue;
     if (/(^|\/)(__MACOSX|\.)/.test(e.filename)) continue;
-    if (e.encrypted && !password) throw new Error('压缩包有密码，请在下面填写解压密码后再解析。');
+    if (e.encrypted && !password) throw pwError('压缩包有密码，填写后再点解析。');
     let data;
     try { data = await e.getData(new Z.Uint8ArrayWriter(), { password: password || undefined }); }
-    catch (er) { const m = String(er && er.message || er); if (/password/i.test(m)) throw new Error('解压密码不对。'); throw new Error('解压失败：' + m); }
+    catch (er) { const m = String(er && er.message || er); if (/password/i.test(m)) throw pwError('解压密码不对，请重新填写。'); throw new Error('解压失败：' + m); }
     const sub = await parseBytes(data, e.filename, password, depth + 1);
     for (const s of sub) { s.inner = e.filename; results.push(s); }
   }

@@ -111,7 +111,7 @@ function guessCat(text, inc, extra) {
 }
 
 /* ---------------- state ---------------- */
-function emptyState() { return { v: 1, sample: false, tx: [], ov: {}, anchors: [], cat: {}, rules: {}, cards: [], subs: [], subHide: [] }; }
+function emptyState() { return { v: 1, sample: false, tx: [], ov: {}, anchors: [], cat: {}, rules: {}, cards: [], subs: [], subHide: [], mailSeen: [] }; }
 function migrate(s) {
   const e = emptyState();
   for (const k in e) if (s[k] == null) s[k] = e[k];

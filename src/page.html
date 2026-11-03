@@ -246,6 +246,10 @@ button.row:active { opacity: 0.6; }
 .fileres .fn { font-weight: 600; word-break: break-all; }
 .fileres .ok { color: var(--ink-2); }
 .fileres .err { color: var(--up); }
+.fileres .src { color: var(--ink-3); font-size: 12.5px; }
+.fileres input { margin-top: 6px; font: inherit; font-size: 16px; height: 44px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--bg); color: var(--ink); width: 100%; }
+.fileres input:focus { outline: none; box-shadow: 0 0 0 2px var(--ink); }
+#impBtns:has(#mailFetchBtn[hidden]) { grid-template-columns: 1fr; }
 .files { display: flex; flex-direction: column; gap: 6px; }
 .diff { font-size: 13.5px; color: var(--ink-2); min-height: 18px; }
 .spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.8s linear infinite; }
@@ -307,6 +311,7 @@ button.row:active { opacity: 0.6; }
       <div class="sec-h"><h2>数据</h2></div>
       <div class="rows">
         <button class="row link" id="importRow" type="button"><span class="row-m"><span class="row-t">导入账单</span><span class="row-s">微信 .xlsx、支付宝 .csv、中国银行 .pdf 或 .zip</span></span><span class="chev" data-icon="chev"></span></button>
+        <button class="row link" id="mailRow" type="button"><span class="row-m"><span class="row-t">邮箱同步</span><span class="row-s" id="mailRowSub">连接你服务器上的邮箱同步服务，一键取账单</span></span><span class="chev" data-icon="chev"></span></button>
         <button class="row link" id="calibRow" type="button"><span class="row-m"><span class="row-t">校准余额</span><span class="row-s">填一下实际总资产，修正曲线</span></span><span class="chev" data-icon="chev"></span></button>
         <button class="row link" id="backupBtn" type="button" hidden><span class="row-m"><span class="row-t">下载备份</span><span class="row-s">保存一个 .json 文件，清缓存或换手机后可恢复</span></span><span class="chev" data-icon="chev"></span></button>
         <div class="row link filepick"><span class="row-m"><span class="row-t">从备份恢复</span><span class="row-s">选择之前下载的备份文件</span></span><span class="chev" data-icon="chev"></span><input type="file" id="restoreInput" accept=".json,application/json" aria-label="从备份恢复"></div>
@@ -393,17 +398,17 @@ button.row:active { opacity: 0.6; }
   <div class="sheet-h"><h3 id="impTitle">导入账单</h3><button class="x" type="button" data-close aria-label="关闭"></button></div>
   <div class="steps">
     <div class="step"><span class="no">1</span><div class="b">
-      <span class="st">选择账单文件</span>
-      <p>微信 .xlsx、支付宝 .csv、中国银行 .pdf，或邮箱收到的 .zip，可多选。在 QQ 邮箱里打开附件，选「存储到文件」。</p>
-      <span class="btn soft filepick">选择文件<input type="file" id="fileInput" multiple accept=".zip,.xlsx,.xls,.csv,.pdf" aria-label="选择账单文件"></span>
+      <span class="st">添加账单文件</span>
+      <p id="impHint">微信 .xlsx、支付宝 .csv、中国银行 .pdf，或邮箱收到的 .zip，可多选。在 QQ 邮箱里打开附件，选「存储到文件」。</p>
+      <div class="grid2" id="impBtns">
+        <button class="btn soft" id="mailFetchBtn" type="button" hidden>从邮箱获取</button>
+        <span class="btn soft filepick">选择文件<input type="file" id="fileInput" multiple accept=".zip,.xlsx,.xls,.csv,.pdf" aria-label="选择账单文件"></span>
+      </div>
       <div class="files" id="fileList"></div>
     </div></div>
     <div class="step"><span class="no">2</span><div class="b">
-      <label class="st" for="pwInput">填写密码</label>
-      <div class="field">
-        <input type="text" id="pwInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="解压密码或 PDF 密码，没有就留空">
-        <div class="hint">微信账单的解压密码在「微信支付」消息里，支付宝的在支付宝消息里。密码不同的文件请分开导入。</div>
-      </div>
+      <span class="st">解析</span>
+      <p>有密码的文件会在上面出现密码框。微信账单的解压密码在「微信支付」消息里，支付宝的在支付宝消息里。</p>
       <button class="btn soft" id="parseBtn" type="button" disabled>解析</button>
     </div></div>
     <div class="step" id="stageBox" hidden><span class="no">3</span><div class="b">
@@ -415,6 +420,19 @@ button.row:active { opacity: 0.6; }
     </div></div>
   </div>
   <button class="btn" id="saveImportBtn" type="button" disabled>保存</button>
+</div>
+
+<!-- Mail sync settings -->
+<div class="sheet" id="mailSheet" role="dialog" aria-modal="true" aria-labelledby="mailTitle" hidden>
+  <div class="grab"></div>
+  <div class="sheet-h"><h3 id="mailTitle">邮箱同步</h3><button class="x" type="button" data-close aria-label="关闭"></button></div>
+  <p id="mailIntro">在你的服务器上运行仓库里的 <b>server/install.sh</b>，把安装结束时显示的服务地址和访问口令填在这里。之后在「导入账单」里点「从邮箱获取」即可。</p>
+  <div class="field"><label for="mlUrl">服务地址</label><input type="text" id="mlUrl" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://bills.example.com"></div>
+  <div class="field"><label for="mlToken">访问口令</label><input type="text" id="mlToken" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="安装脚本最后显示的那串字符"></div>
+  <div class="diff" id="mlStatus"></div>
+  <button class="btn" id="mlSave" type="button">测试并保存</button>
+  <button class="btn danger" id="mlClear" type="button" hidden>断开邮箱同步</button>
+  <p style="font-size: 12.5px; color: var(--ink-3);">地址和口令只保存在这台手机上，不会写进备份文件。</p>
 </div>
 
 <!-- Calibrate -->

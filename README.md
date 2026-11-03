@@ -16,6 +16,7 @@
   - `index.html`：GitHub Pages 用的完整网页（带主屏幕图标和全屏设置）
   - `build/artifact.html`：发布到 Claude Artifact 用的版本
 - `icons/`、`manifest.webmanifest`：主屏幕图标与应用信息
+- `server/`：可选的邮箱同步服务，装在自己的服务器上，见 [server/README.md](server/README.md)
 - `design/directions.html`：三个设计方向的样稿
 - `tests/fixtures/`：合成的测试账单（非真实数据）；`tests/mkfx.py`、`tests/mkwx.js` 是生成脚本
 - `tests/e2e.js`：端到端测试
@@ -29,4 +30,4 @@ python3 tools/build.py
 改完 `src/` 后运行上面的命令，提交并推送到 `main`，GitHub Pages 会自动更新。
 
 运行测试：在仓库根目录执行 `npm i playwright xlsx@0.18.5 @zip.js/zip.js@2.7.45 pdfjs-dist@3.11.174 geist@1.3.1`，
-先运行 `python3 tools/build.py`，再运行 `node tests/e2e.js`。
+先运行 `python3 tools/build.py`，再运行 `node tests/e2e.js`；服务器端测试：`python3 tests/test_server.py`。
