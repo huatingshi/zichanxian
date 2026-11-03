@@ -200,17 +200,29 @@ $('#qaSave').addEventListener('click', () => {
 });
 
 /* ---------------- categories tab ---------------- */
-let catRange = 'month', catKind = 'out', selCat = null, catLimit = DAYS_FIRST;
-const PERIOD_LABEL = { month: '本月', last: '上月', '3m': '近3月', year: '今年', all: '全部' };
-function catPeriod() {
+/* 按月 / 按年 with a ‹ › stepper (catOff 0 = this month or year, -1 = the one before …), or everything */
+let catRange = 'month', catOff = 0, catKind = 'out', selCat = null, catLimit = DAYS_FIRST;
+function catPeriod(off = catOff) {
   const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
-  switch (catRange) {
-    case 'month': return [new Date(y, m, 1).getTime(), Infinity];
-    case 'last': return [new Date(y, m - 1, 1).getTime(), new Date(y, m, 1).getTime()];
-    case '3m': return [new Date(y, m - 2, 1).getTime(), Infinity];
-    case 'year': return [new Date(y, 0, 1).getTime(), Infinity];
-    default: return [-Infinity, Infinity];
-  }
+  if (catRange === 'month') return [new Date(y, m + off, 1).getTime(), new Date(y, m + off + 1, 1).getTime()];
+  if (catRange === 'year') return [new Date(y + off, 0, 1).getTime(), new Date(y + off + 1, 0, 1).getTime()];
+  return [-Infinity, Infinity];
+}
+function periodLabel() {
+  if (catRange === 'all') return '全部';
+  const d = new Date(catPeriod()[0]); const thisYear = d.getFullYear() === new Date().getFullYear();
+  if (catRange === 'year') return catOff === 0 ? '今年' : catOff === -1 ? '去年' : d.getFullYear() + '年';
+  if (catOff === 0) return '本月';
+  if (catOff === -1) return '上月';
+  return (thisYear ? '' : d.getFullYear() + '年') + (d.getMonth() + 1) + '月';
+}
+function catEarliest() { return derived.all.length ? derived.all[0].x.t : Date.now(); }
+function stepCat(dir) {
+  if (catRange === 'all') return;
+  const next = catOff + dir;
+  if (next > 0) return;
+  if (dir < 0 && catPeriod(next)[1] <= catEarliest()) { toast('更早的时候没有记录'); return; }
+  catOff = next; selCat = null; catLimit = DAYS_FIRST; renderCats();
 }
 function arcPath(cx, cy, r0, r1, a0, a1) {
   if (a1 - a0 >= Math.PI * 2 - 1e-6) a1 = a0 + Math.PI * 2 - 1e-4;
@@ -220,6 +232,13 @@ function arcPath(cx, cy, r0, r1, a0, a1) {
 }
 function renderCats() {
   for (const x of $('#catRanges').children) x.setAttribute('aria-selected', String(x.dataset.r === catRange));
+  $('#catStep').hidden = catRange === 'all';
+  if (catRange !== 'all') {
+    const d = new Date(catPeriod()[0]);
+    $('#catNow').textContent = catRange === 'year' ? d.getFullYear() + '年' : d.getFullYear() + '年' + (d.getMonth() + 1) + '月';
+    $('#catNext').disabled = catOff >= 0;
+    $('#catPrev').disabled = catPeriod(catOff - 1)[1] <= catEarliest();
+  }
   for (const x of $('#catKind').children) x.setAttribute('aria-selected', String(x.dataset.k === catKind));
   const [a, b] = catPeriod(); const inc = catKind === 'in';
   const sums = new Map(); const recs = [];
@@ -259,13 +278,13 @@ function renderCats() {
     $('#dcK').textContent = selCat === '_fold' ? '其他各类' : CATS[selCat].n;
     $('#dcV').textContent = fmtMoney(selV); $('#dcP').textContent = (total ? (selV / total * 100).toFixed(1) : '0') + '%';
   } else {
-    $('#dcK').textContent = PERIOD_LABEL[catRange] + (inc ? '收入' : '支出');
+    $('#dcK').textContent = periodLabel() + (inc ? '收入' : '支出');
     $('#dcV').textContent = fmtMoney(total); $('#dcP').textContent = total ? recs.length + ' 笔' : '没有记录';
   }
-  $('#donut').setAttribute('aria-label', `${PERIOD_LABEL[catRange]}${inc ? '收入' : '支出'}分类占比，合计 ${fmtMoney(total)} 元`);
+  $('#donut').setAttribute('aria-label', `${periodLabel()}${inc ? '收入' : '支出'}分类占比，合计 ${fmtMoney(total)} 元`);
   const lg = $('#legend'); lg.textContent = '';
   const rows = Array.from(sums.entries()).sort((p, q) => q[1] - p[1]);
-  if (!rows.length) lg.append(el('div', 'empty', `${PERIOD_LABEL[catRange]}没有${inc ? '收入' : '支出'}记录。`));
+  if (!rows.length) lg.append(el('div', 'empty', `${periodLabel()}没有${inc ? '收入' : '支出'}记录。`));
   for (const [id, v] of rows) {
     const b = el('button', 'row'); b.type = 'button';
     b.setAttribute('aria-pressed', String(selCat === id || (selCat === '_fold' && foldIds.includes(id))));
@@ -286,7 +305,21 @@ function renderCats() {
 }
 $('#catMoreBtn').addEventListener('click', () => { catLimit += DAYS_MORE; renderCats(); });
 $('#catLessBtn').addEventListener('click', () => { catLimit = DAYS_FIRST; renderCats(); $('#catTxBox').scrollIntoView({ block: 'start' }); });
-$('#catRanges').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catRange = b.dataset.r; selCat = null; renderCats(); });
+$('#catRanges').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catRange = b.dataset.r; catOff = 0; selCat = null; renderCats(); });
+$('#catPrev').addEventListener('click', () => stepCat(-1));
+$('#catNext').addEventListener('click', () => stepCat(1));
+$('#catNow').addEventListener('click', () => { if (catOff) { catOff = 0; selCat = null; renderCats(); } });
+// swipe left / right on the ring to step through months or years
+(() => {
+  let sx = null, sy = null;
+  const box = $('#donutBox');
+  box.addEventListener('pointerdown', (e) => { sx = e.clientX; sy = e.clientY; });
+  box.addEventListener('pointerup', (e) => {
+    if (sx == null) return; const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+    if (Math.abs(dx) > 50 && Math.abs(dy) < 40) { box.dataset.swiped = '1'; stepCat(dx < 0 ? 1 : -1); setTimeout(() => { delete box.dataset.swiped; }, 50); }
+  });
+  box.addEventListener('click', (e) => { if (box.dataset.swiped) { e.stopPropagation(); e.preventDefault(); } }, true);
+})();
 $('#catKind').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catKind = b.dataset.k; selCat = null; renderCats(); });
 
 /* ---------------- repayments tab ---------------- */

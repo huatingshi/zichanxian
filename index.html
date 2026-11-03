@@ -121,6 +121,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, .filepick:focus
 .ttabs.left { justify-content: flex-start; }
 .ttabs.left button { flex: none; padding: 0 12px; }
 #themeTabs button { padding: 0 10px; font-size: 13.5px; }
+#txNameBox .grid2 { gap: 10px; }
 
 .rule { height: 1px; background: var(--line); margin-top: 18px; }
 .sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
@@ -175,6 +176,11 @@ a.row { text-decoration: none; color: inherit; }
 .filepick input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
 /* categories */
+.stepper { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; margin-top: 12px; }
+.stepper button { height: 44px; display: grid; place-items: center; color: var(--ink); border-radius: 12px; }
+.stepper button svg { width: 20px; height: 20px; }
+.stepper button:disabled { color: var(--line); cursor: default; }
+.stepper .now { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .donut-box { position: relative; display: grid; place-items: center; margin-top: 20px; }
 .donut-box svg { width: min(220px, 62vw); height: auto; display: block; overflow: visible; }
 .donut-box path { cursor: pointer; transition: opacity 0.15s ease; }
@@ -365,11 +371,14 @@ a.row { text-decoration: none; color: inherit; }
   <section class="pane" id="pane-cats" hidden>
     <h1 class="page-title">分类</h1>
     <div class="ttabs" role="tablist" aria-label="统计时间" id="catRanges" style="margin-top: 16px;">
-      <button role="tab" data-r="month" aria-selected="true">本月</button>
-      <button role="tab" data-r="last" aria-selected="false">上月</button>
-      <button role="tab" data-r="3m" aria-selected="false">近3月</button>
-      <button role="tab" data-r="year" aria-selected="false">今年</button>
+      <button role="tab" data-r="month" aria-selected="true">按月</button>
+      <button role="tab" data-r="year" aria-selected="false">按年</button>
       <button role="tab" data-r="all" aria-selected="false">全部</button>
+    </div>
+    <div class="stepper" id="catStep">
+      <button type="button" id="catPrev" aria-label="往前一个"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" id="catNow" class="now" aria-live="polite">2026年11月</button>
+      <button type="button" id="catNext" aria-label="往后一个"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
     <div class="ttabs left" role="tablist" aria-label="支出或收入" id="catKind" style="margin: 10px 0 0 -12px;">
       <button role="tab" data-k="out" aria-selected="true">支出</button>
@@ -515,6 +524,13 @@ a.row { text-decoration: none; color: inherit; }
   <div class="grab"></div>
   <div class="sheet-h"><h3 id="txTitle">交易</h3><button class="x" type="button" data-close aria-label="关闭"></button></div>
   <div><div class="tx-a" id="txAmt"></div><div class="tx-s" id="txSub"></div></div>
+  <div class="field" id="txNameBox">
+    <div class="grid2">
+      <div class="field"><label for="txName">名称</label><input type="text" id="txName" autocomplete="off" enterkeyhint="done"></div>
+      <div class="field"><label for="txMemo">备注</label><input type="text" id="txMemo" autocomplete="off" enterkeyhint="done" placeholder="写点什么"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="txNameAll"><span id="txNameAllText">同名的也一起改</span></label>
+  </div>
   <dl class="kv" id="txKv"></dl>
   <p id="txWhy"></p>
   <div class="field" id="txCountBox">
@@ -719,7 +735,7 @@ function guessCat(text, inc, extra) {
 }
 
 /* ---------------- state ---------------- */
-function emptyState() { return { v: 1, sample: false, tx: [], ov: {}, anchors: [], cat: {}, rules: {}, cards: [], subs: [], subHide: [], mailSeen: [] }; }
+function emptyState() { return { v: 1, sample: false, tx: [], ov: {}, anchors: [], cat: {}, rules: {}, cards: [], subs: [], subHide: [], mailSeen: [], names: {}, nameRules: {}, memos: {} }; }
 function migrate(s) {
   const e = emptyState();
   for (const k in e) if (s[k] == null) s[k] = e[k];
@@ -766,7 +782,7 @@ function makeSample() {
   const c1 = nextCycle(18), c2 = nextCycle(10);
   const nextOn = (day) => { const c = today.getDate() <= day ? cycleOf(now) : addMonths(cycleOf(now), 1); return toDateInput(dateInMonth(c, day)); };
   return {
-    v: 1, sample: true, tx, ov: {}, anchors: [{ t: now - 60e3, v: 8642035 }], cat: {}, rules: {}, subHide: [],
+    v: 1, sample: true, tx, ov: {}, anchors: [{ t: now - 60e3, v: 8642035 }], cat: {}, rules: {}, subHide: [], names: {}, nameRules: {}, memos: {},
     cards: [
       { id: 'card:s1', name: '招商银行信用卡', due: 18, stmt: 5, since: c1, paid: {}, bills: { [c1]: 328640 }, plans: [{ id: 'plan:s1', name: '手机分期', per: 52492, total: 12, start: addMonths(c1, -4) }] },
       { id: 'card:s2', name: '花呗', due: 10, stmt: 1, since: c2, paid: {}, bills: { [c2]: 124000 }, plans: [] }
@@ -854,7 +870,8 @@ function derive() {
     const a = auto.get(x.id);
     const o = Object.prototype.hasOwnProperty.call(state.ov, x.id) ? state.ov[x.id] : null;
     const s = o == null ? a.s : o;
-    const rec = { x, s, auto: a.s, why: o == null ? a.why : '手动设置', manual: o != null, delta: s * x.amt, cat: null };
+    const rec = { x, s, auto: a.s, why: o == null ? a.why : '手动设置', manual: o != null, delta: s * x.amt, cat: null,
+      name: displayName(x), memo: (state.memos || {})[x.id] || '' };
     if (s !== 0) rec.cat = catFor(rec, manualFor);
     all.push(rec);
     if (s !== 0) eff.push(rec);
@@ -870,13 +887,20 @@ function derive() {
   derived = { all, eff, anchors, anchorRecs, bal, S, manualFor };
   return derived;
 }
+/* The bill's own name stays in x.name (de-duplication and rules key on it); what the list shows can be renamed
+   for one transaction (names) or for every transaction with the same original name (nameRules). */
+function displayName(x) {
+  const own = (state.names || {})[x.id]; if (own) return own;
+  const rule = (state.nameRules || {})[mkey(x)]; if (rule) return rule;
+  return x.name || x.note || '';
+}
 function catFor(rec, manualFor) {
   const x = rec.x; const inc = rec.s > 0;
   const ok = (c) => !!(c && CATS[c] && !!CATS[c].inc === inc);
   if (ok(state.cat[x.id])) return state.cat[x.id];
   const m = manualFor.get(x.id); if (m && ok(state.cat[m.id])) return state.cat[m.id];
   const r = state.rules[mkey(x)]; if (ok(r)) return r;
-  return guessCat([x.name, x.note, x.src === 'ali' ? '' : x.type].join(' '), inc, { refund: rec.why === '退款' || isRefundLike(x), aliType: x.src === 'ali' ? x.type : '' });
+  return guessCat([rec.name !== x.name ? rec.name : '', x.name, x.note, x.src === 'ali' ? '' : x.type].join(' '), inc, { refund: rec.why === '退款' || isRefundLike(x), aliType: x.src === 'ali' ? x.type : '' });
 }
 
 
@@ -956,7 +980,7 @@ function renderQuote() {
   lbl.classList.toggle('sample', !!state.sample && !hover);
   if (hover) {
     lbl.textContent = fmtDT(hover.t);
-    if (hover.e && hover.e.rec) { const x = hover.e.rec.x; sc.textContent = (x.name || x.note || '交易') + '　' + fmtMoney(hover.e.rec.delta, { sign: true }); }
+    if (hover.e && hover.e.rec) { sc.textContent = (hover.e.rec.name || '交易') + '　' + fmtMoney(hover.e.rec.delta, { sign: true }); }
     else if (hover.e && hover.e.anc) sc.textContent = '校准到 ¥' + fmtMoney(hover.e.anc.anchor.v);
     else sc.textContent = '这一刻没有交易';
     sc.classList.add('on');
@@ -1117,8 +1141,9 @@ function makeRow(it) {
   const main = el('span', 'row-m'); const right = el('span', 'row-r');
   if (it.r) {
     const { x, s } = it.r;
-    const sub = [s !== 0 && it.r.cat ? CATS[it.r.cat].n : null, srcLabel(x), fmtTime(x.t), x.note && x.note !== x.name ? x.note : null].filter(Boolean).join(' · ');
-    main.append(el('span', 'row-t', x.name || x.note || '(无名称)'), el('span', 'row-s', sub));
+    const extra = it.r.memo || (x.note && x.note !== x.name && x.note !== it.r.name ? x.note : null);
+    const sub = [s !== 0 && it.r.cat ? CATS[it.r.cat].n : null, srcLabel(x), fmtTime(x.t), extra].filter(Boolean).join(' · ');
+    main.append(el('span', 'row-t', it.r.name || '(无名称)'), el('span', 'row-s', sub));
     if (s === 0) { b.classList.add('off'); right.append(el('span', 'row-a', fmtMoney(x.dir === 1 ? x.amt : -x.amt)), el('span', 'row-x', '未计入 · ' + (it.r.why || ''))); }
     else { right.append(el('span', 'row-a' + (it.r.delta > 0 ? ' in' : ''), fmtMoney(it.r.delta, { sign: true }))); if (it.r.manual) right.append(el('span', 'row-x', '手动设置')); }
   } else {
@@ -1246,10 +1271,12 @@ function openTx(item) {
   const amtEl = $('#txAmt');
   if (item.r) {
     const { x, s } = item.r;
-    $('#txTitle').textContent = x.name || x.note || '交易';
+    $('#txTitle').textContent = item.r.name || '交易';
+    setupNameEdit(item.r);
     amtEl.className = 'tx-a' + (s === 0 ? ' flat' : item.r.delta > 0 ? ' up' : '');
     amtEl.textContent = s === 0 ? fmtMoney(x.dir === 1 ? x.amt : -x.amt) : fmtMoney(item.r.delta, { sign: true });
     $('#txSub').textContent = fmtDT(x.t) + ' · ' + srcLabel(x) + (s !== 0 && item.r.cat ? ' · ' + CATS[item.r.cat].n : '');
+    if (item.r.name !== (x.name || x.note || '')) addKV('账单原名', x.name || x.note);
     addKV('说明', x.note !== x.name ? x.note : ''); addKV('类型', x.type); addKV('支付方式', x.method); addKV('状态', x.status);
     if (x.bal != null) addKV('卡内余额', '¥' + fmtMoney(x.bal));
     kv.hidden = !kv.children.length;
@@ -1270,6 +1297,7 @@ function openTx(item) {
     if (x.src === 'manual') { $('#txDel').hidden = false; armDelete($('#txDel'), '删除这笔', () => { state.tx = state.tx.filter((t) => t.id !== x.id); delete state.cat[x.id]; delete state.ov[x.id]; saveState(); closeSheet(); renderAll(); toast('已删除'); }); }
   } else {
     const a = item.a; $('#txTitle').textContent = a.before == null ? '首次填写总资产' : '校准余额';
+    $('#txNameBox').hidden = true;
     if (a.before == null) { amtEl.className = 'tx-a'; amtEl.textContent = '¥' + fmtMoney(a.anchor.v); }
     else { const d = a.anchor.v - a.before; amtEl.className = 'tx-a' + (d > 0 ? ' up' : ''); amtEl.textContent = fmtMoney(d, { sign: true }); }
     $('#txSub').textContent = fmtDT(a.anchor.t);
@@ -1281,6 +1309,35 @@ function openTx(item) {
   }
   openSheet('#txSheet');
 }
+/* 名称 and 备注: saved when the field loses focus; 同名一起改 covers this and future imports with the same bill name */
+function setupNameEdit(r) {
+  const x = r.x, key = mkey(x);
+  const same = key ? derived.all.filter((o) => o.x.id !== x.id && mkey(o.x) === key).length : 0;
+  $('#txNameBox').hidden = false;
+  const ni = $('#txName'), mi = $('#txMemo'), all = $('#txNameAll');
+  ni.value = r.name; ni.placeholder = x.name || x.note || '名称'; mi.value = r.memo;
+  all.checked = !!(key && state.nameRules && state.nameRules[key] && !state.names[x.id]);
+  all.closest('.check').hidden = !same;
+  $('#txNameAllText').textContent = `账单里同名的另外 ${same} 笔也用这个名称，以后导入的也一样`;
+  const saveName = () => {
+    const v = ni.value.trim(); const orig = x.name || x.note || '';
+    leaveSampleKeepTx();
+    if (!state.names) state.names = {}; if (!state.nameRules) state.nameRules = {};
+    if (all.checked && key) { delete state.names[x.id]; if (v && v !== orig) state.nameRules[key] = v; else delete state.nameRules[key]; }
+    else { if (v && v !== orig && v !== state.nameRules[key]) state.names[x.id] = v; else delete state.names[x.id]; }
+    saveState(); renderAll(); $('#txTitle').textContent = v || orig || '交易';
+  };
+  for (const inp of [ni, mi]) inp.onkeydown = (e) => { if (e.key === 'Enter') inp.blur(); };
+  ni.onchange = () => { saveName(); toast(ni.value.trim() ? '名称已保存' : '已恢复账单原名'); };
+  all.onchange = () => { saveName(); toast(all.checked ? `同名的 ${same + 1} 笔都改好了` : '只改这一笔'); };
+  mi.onchange = () => {
+    const v = mi.value.trim(); leaveSampleKeepTx(); if (!state.memos) state.memos = {};
+    if (v) state.memos[x.id] = v; else delete state.memos[x.id];
+    saveState(); renderAll(); toast(v ? '备注已保存' : '已删除备注');
+  };
+}
+/* Renaming a sample transaction just edits the sample in memory; it is never saved. */
+function leaveSampleKeepTx() {}
 $('#txBtns').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || !txCur || !txCur.r) return;
   const v = +b.dataset.set; const id = txCur.r.x.id;
@@ -1762,17 +1819,29 @@ $('#qaSave').addEventListener('click', () => {
 });
 
 /* ---------------- categories tab ---------------- */
-let catRange = 'month', catKind = 'out', selCat = null, catLimit = DAYS_FIRST;
-const PERIOD_LABEL = { month: '本月', last: '上月', '3m': '近3月', year: '今年', all: '全部' };
-function catPeriod() {
+/* 按月 / 按年 with a ‹ › stepper (catOff 0 = this month or year, -1 = the one before …), or everything */
+let catRange = 'month', catOff = 0, catKind = 'out', selCat = null, catLimit = DAYS_FIRST;
+function catPeriod(off = catOff) {
   const now = new Date(); const y = now.getFullYear(), m = now.getMonth();
-  switch (catRange) {
-    case 'month': return [new Date(y, m, 1).getTime(), Infinity];
-    case 'last': return [new Date(y, m - 1, 1).getTime(), new Date(y, m, 1).getTime()];
-    case '3m': return [new Date(y, m - 2, 1).getTime(), Infinity];
-    case 'year': return [new Date(y, 0, 1).getTime(), Infinity];
-    default: return [-Infinity, Infinity];
-  }
+  if (catRange === 'month') return [new Date(y, m + off, 1).getTime(), new Date(y, m + off + 1, 1).getTime()];
+  if (catRange === 'year') return [new Date(y + off, 0, 1).getTime(), new Date(y + off + 1, 0, 1).getTime()];
+  return [-Infinity, Infinity];
+}
+function periodLabel() {
+  if (catRange === 'all') return '全部';
+  const d = new Date(catPeriod()[0]); const thisYear = d.getFullYear() === new Date().getFullYear();
+  if (catRange === 'year') return catOff === 0 ? '今年' : catOff === -1 ? '去年' : d.getFullYear() + '年';
+  if (catOff === 0) return '本月';
+  if (catOff === -1) return '上月';
+  return (thisYear ? '' : d.getFullYear() + '年') + (d.getMonth() + 1) + '月';
+}
+function catEarliest() { return derived.all.length ? derived.all[0].x.t : Date.now(); }
+function stepCat(dir) {
+  if (catRange === 'all') return;
+  const next = catOff + dir;
+  if (next > 0) return;
+  if (dir < 0 && catPeriod(next)[1] <= catEarliest()) { toast('更早的时候没有记录'); return; }
+  catOff = next; selCat = null; catLimit = DAYS_FIRST; renderCats();
 }
 function arcPath(cx, cy, r0, r1, a0, a1) {
   if (a1 - a0 >= Math.PI * 2 - 1e-6) a1 = a0 + Math.PI * 2 - 1e-4;
@@ -1782,6 +1851,13 @@ function arcPath(cx, cy, r0, r1, a0, a1) {
 }
 function renderCats() {
   for (const x of $('#catRanges').children) x.setAttribute('aria-selected', String(x.dataset.r === catRange));
+  $('#catStep').hidden = catRange === 'all';
+  if (catRange !== 'all') {
+    const d = new Date(catPeriod()[0]);
+    $('#catNow').textContent = catRange === 'year' ? d.getFullYear() + '年' : d.getFullYear() + '年' + (d.getMonth() + 1) + '月';
+    $('#catNext').disabled = catOff >= 0;
+    $('#catPrev').disabled = catPeriod(catOff - 1)[1] <= catEarliest();
+  }
   for (const x of $('#catKind').children) x.setAttribute('aria-selected', String(x.dataset.k === catKind));
   const [a, b] = catPeriod(); const inc = catKind === 'in';
   const sums = new Map(); const recs = [];
@@ -1821,13 +1897,13 @@ function renderCats() {
     $('#dcK').textContent = selCat === '_fold' ? '其他各类' : CATS[selCat].n;
     $('#dcV').textContent = fmtMoney(selV); $('#dcP').textContent = (total ? (selV / total * 100).toFixed(1) : '0') + '%';
   } else {
-    $('#dcK').textContent = PERIOD_LABEL[catRange] + (inc ? '收入' : '支出');
+    $('#dcK').textContent = periodLabel() + (inc ? '收入' : '支出');
     $('#dcV').textContent = fmtMoney(total); $('#dcP').textContent = total ? recs.length + ' 笔' : '没有记录';
   }
-  $('#donut').setAttribute('aria-label', `${PERIOD_LABEL[catRange]}${inc ? '收入' : '支出'}分类占比，合计 ${fmtMoney(total)} 元`);
+  $('#donut').setAttribute('aria-label', `${periodLabel()}${inc ? '收入' : '支出'}分类占比，合计 ${fmtMoney(total)} 元`);
   const lg = $('#legend'); lg.textContent = '';
   const rows = Array.from(sums.entries()).sort((p, q) => q[1] - p[1]);
-  if (!rows.length) lg.append(el('div', 'empty', `${PERIOD_LABEL[catRange]}没有${inc ? '收入' : '支出'}记录。`));
+  if (!rows.length) lg.append(el('div', 'empty', `${periodLabel()}没有${inc ? '收入' : '支出'}记录。`));
   for (const [id, v] of rows) {
     const b = el('button', 'row'); b.type = 'button';
     b.setAttribute('aria-pressed', String(selCat === id || (selCat === '_fold' && foldIds.includes(id))));
@@ -1848,7 +1924,21 @@ function renderCats() {
 }
 $('#catMoreBtn').addEventListener('click', () => { catLimit += DAYS_MORE; renderCats(); });
 $('#catLessBtn').addEventListener('click', () => { catLimit = DAYS_FIRST; renderCats(); $('#catTxBox').scrollIntoView({ block: 'start' }); });
-$('#catRanges').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catRange = b.dataset.r; selCat = null; renderCats(); });
+$('#catRanges').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catRange = b.dataset.r; catOff = 0; selCat = null; renderCats(); });
+$('#catPrev').addEventListener('click', () => stepCat(-1));
+$('#catNext').addEventListener('click', () => stepCat(1));
+$('#catNow').addEventListener('click', () => { if (catOff) { catOff = 0; selCat = null; renderCats(); } });
+// swipe left / right on the ring to step through months or years
+(() => {
+  let sx = null, sy = null;
+  const box = $('#donutBox');
+  box.addEventListener('pointerdown', (e) => { sx = e.clientX; sy = e.clientY; });
+  box.addEventListener('pointerup', (e) => {
+    if (sx == null) return; const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+    if (Math.abs(dx) > 50 && Math.abs(dy) < 40) { box.dataset.swiped = '1'; stepCat(dx < 0 ? 1 : -1); setTimeout(() => { delete box.dataset.swiped; }, 50); }
+  });
+  box.addEventListener('click', (e) => { if (box.dataset.swiped) { e.stopPropagation(); e.preventDefault(); } }, true);
+})();
 $('#catKind').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catKind = b.dataset.k; selCat = null; renderCats(); });
 
 /* ---------------- repayments tab ---------------- */

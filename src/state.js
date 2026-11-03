@@ -113,7 +113,7 @@ function guessCat(text, inc, extra) {
 }
 
 /* ---------------- state ---------------- */
-function emptyState() { return { v: 1, sample: false, tx: [], ov: {}, anchors: [], cat: {}, rules: {}, cards: [], subs: [], subHide: [], mailSeen: [] }; }
+function emptyState() { return { v: 1, sample: false, tx: [], ov: {}, anchors: [], cat: {}, rules: {}, cards: [], subs: [], subHide: [], mailSeen: [], names: {}, nameRules: {}, memos: {} }; }
 function migrate(s) {
   const e = emptyState();
   for (const k in e) if (s[k] == null) s[k] = e[k];
@@ -160,7 +160,7 @@ function makeSample() {
   const c1 = nextCycle(18), c2 = nextCycle(10);
   const nextOn = (day) => { const c = today.getDate() <= day ? cycleOf(now) : addMonths(cycleOf(now), 1); return toDateInput(dateInMonth(c, day)); };
   return {
-    v: 1, sample: true, tx, ov: {}, anchors: [{ t: now - 60e3, v: 8642035 }], cat: {}, rules: {}, subHide: [],
+    v: 1, sample: true, tx, ov: {}, anchors: [{ t: now - 60e3, v: 8642035 }], cat: {}, rules: {}, subHide: [], names: {}, nameRules: {}, memos: {},
     cards: [
       { id: 'card:s1', name: '招商银行信用卡', due: 18, stmt: 5, since: c1, paid: {}, bills: { [c1]: 328640 }, plans: [{ id: 'plan:s1', name: '手机分期', per: 52492, total: 12, start: addMonths(c1, -4) }] },
       { id: 'card:s2', name: '花呗', due: 10, stmt: 1, since: c2, paid: {}, bills: { [c2]: 124000 }, plans: [] }
@@ -248,7 +248,8 @@ function derive() {
     const a = auto.get(x.id);
     const o = Object.prototype.hasOwnProperty.call(state.ov, x.id) ? state.ov[x.id] : null;
     const s = o == null ? a.s : o;
-    const rec = { x, s, auto: a.s, why: o == null ? a.why : '手动设置', manual: o != null, delta: s * x.amt, cat: null };
+    const rec = { x, s, auto: a.s, why: o == null ? a.why : '手动设置', manual: o != null, delta: s * x.amt, cat: null,
+      name: displayName(x), memo: (state.memos || {})[x.id] || '' };
     if (s !== 0) rec.cat = catFor(rec, manualFor);
     all.push(rec);
     if (s !== 0) eff.push(rec);
@@ -264,12 +265,19 @@ function derive() {
   derived = { all, eff, anchors, anchorRecs, bal, S, manualFor };
   return derived;
 }
+/* The bill's own name stays in x.name (de-duplication and rules key on it); what the list shows can be renamed
+   for one transaction (names) or for every transaction with the same original name (nameRules). */
+function displayName(x) {
+  const own = (state.names || {})[x.id]; if (own) return own;
+  const rule = (state.nameRules || {})[mkey(x)]; if (rule) return rule;
+  return x.name || x.note || '';
+}
 function catFor(rec, manualFor) {
   const x = rec.x; const inc = rec.s > 0;
   const ok = (c) => !!(c && CATS[c] && !!CATS[c].inc === inc);
   if (ok(state.cat[x.id])) return state.cat[x.id];
   const m = manualFor.get(x.id); if (m && ok(state.cat[m.id])) return state.cat[m.id];
   const r = state.rules[mkey(x)]; if (ok(r)) return r;
-  return guessCat([x.name, x.note, x.src === 'ali' ? '' : x.type].join(' '), inc, { refund: rec.why === '退款' || isRefundLike(x), aliType: x.src === 'ali' ? x.type : '' });
+  return guessCat([rec.name !== x.name ? rec.name : '', x.name, x.note, x.src === 'ali' ? '' : x.type].join(' '), inc, { refund: rec.why === '退款' || isRefundLike(x), aliType: x.src === 'ali' ? x.type : '' });
 }
 

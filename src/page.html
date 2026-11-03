@@ -88,6 +88,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, .filepick:focus
 .ttabs.left { justify-content: flex-start; }
 .ttabs.left button { flex: none; padding: 0 12px; }
 #themeTabs button { padding: 0 10px; font-size: 13.5px; }
+#txNameBox .grid2 { gap: 10px; }
 
 .rule { height: 1px; background: var(--line); margin-top: 18px; }
 .sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
@@ -142,6 +143,11 @@ a.row { text-decoration: none; color: inherit; }
 .filepick input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
 /* categories */
+.stepper { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; margin-top: 12px; }
+.stepper button { height: 44px; display: grid; place-items: center; color: var(--ink); border-radius: 12px; }
+.stepper button svg { width: 20px; height: 20px; }
+.stepper button:disabled { color: var(--line); cursor: default; }
+.stepper .now { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .donut-box { position: relative; display: grid; place-items: center; margin-top: 20px; }
 .donut-box svg { width: min(220px, 62vw); height: auto; display: block; overflow: visible; }
 .donut-box path { cursor: pointer; transition: opacity 0.15s ease; }
@@ -332,11 +338,14 @@ a.row { text-decoration: none; color: inherit; }
   <section class="pane" id="pane-cats" hidden>
     <h1 class="page-title">分类</h1>
     <div class="ttabs" role="tablist" aria-label="统计时间" id="catRanges" style="margin-top: 16px;">
-      <button role="tab" data-r="month" aria-selected="true">本月</button>
-      <button role="tab" data-r="last" aria-selected="false">上月</button>
-      <button role="tab" data-r="3m" aria-selected="false">近3月</button>
-      <button role="tab" data-r="year" aria-selected="false">今年</button>
+      <button role="tab" data-r="month" aria-selected="true">按月</button>
+      <button role="tab" data-r="year" aria-selected="false">按年</button>
       <button role="tab" data-r="all" aria-selected="false">全部</button>
+    </div>
+    <div class="stepper" id="catStep">
+      <button type="button" id="catPrev" aria-label="往前一个"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.5 4.5 7 10l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" id="catNow" class="now" aria-live="polite">2026年11月</button>
+      <button type="button" id="catNext" aria-label="往后一个"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M7.5 4.5 13 10l-5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     </div>
     <div class="ttabs left" role="tablist" aria-label="支出或收入" id="catKind" style="margin: 10px 0 0 -12px;">
       <button role="tab" data-k="out" aria-selected="true">支出</button>
@@ -482,6 +491,13 @@ a.row { text-decoration: none; color: inherit; }
   <div class="grab"></div>
   <div class="sheet-h"><h3 id="txTitle">交易</h3><button class="x" type="button" data-close aria-label="关闭"></button></div>
   <div><div class="tx-a" id="txAmt"></div><div class="tx-s" id="txSub"></div></div>
+  <div class="field" id="txNameBox">
+    <div class="grid2">
+      <div class="field"><label for="txName">名称</label><input type="text" id="txName" autocomplete="off" enterkeyhint="done"></div>
+      <div class="field"><label for="txMemo">备注</label><input type="text" id="txMemo" autocomplete="off" enterkeyhint="done" placeholder="写点什么"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="txNameAll"><span id="txNameAllText">同名的也一起改</span></label>
+  </div>
   <dl class="kv" id="txKv"></dl>
   <p id="txWhy"></p>
   <div class="field" id="txCountBox">

@@ -75,7 +75,7 @@ function renderQuote() {
   lbl.classList.toggle('sample', !!state.sample && !hover);
   if (hover) {
     lbl.textContent = fmtDT(hover.t);
-    if (hover.e && hover.e.rec) { const x = hover.e.rec.x; sc.textContent = (x.name || x.note || '交易') + '　' + fmtMoney(hover.e.rec.delta, { sign: true }); }
+    if (hover.e && hover.e.rec) { sc.textContent = (hover.e.rec.name || '交易') + '　' + fmtMoney(hover.e.rec.delta, { sign: true }); }
     else if (hover.e && hover.e.anc) sc.textContent = '校准到 ¥' + fmtMoney(hover.e.anc.anchor.v);
     else sc.textContent = '这一刻没有交易';
     sc.classList.add('on');
@@ -236,8 +236,9 @@ function makeRow(it) {
   const main = el('span', 'row-m'); const right = el('span', 'row-r');
   if (it.r) {
     const { x, s } = it.r;
-    const sub = [s !== 0 && it.r.cat ? CATS[it.r.cat].n : null, srcLabel(x), fmtTime(x.t), x.note && x.note !== x.name ? x.note : null].filter(Boolean).join(' · ');
-    main.append(el('span', 'row-t', x.name || x.note || '(无名称)'), el('span', 'row-s', sub));
+    const extra = it.r.memo || (x.note && x.note !== x.name && x.note !== it.r.name ? x.note : null);
+    const sub = [s !== 0 && it.r.cat ? CATS[it.r.cat].n : null, srcLabel(x), fmtTime(x.t), extra].filter(Boolean).join(' · ');
+    main.append(el('span', 'row-t', it.r.name || '(无名称)'), el('span', 'row-s', sub));
     if (s === 0) { b.classList.add('off'); right.append(el('span', 'row-a', fmtMoney(x.dir === 1 ? x.amt : -x.amt)), el('span', 'row-x', '未计入 · ' + (it.r.why || ''))); }
     else { right.append(el('span', 'row-a' + (it.r.delta > 0 ? ' in' : ''), fmtMoney(it.r.delta, { sign: true }))); if (it.r.manual) right.append(el('span', 'row-x', '手动设置')); }
   } else {
@@ -365,10 +366,12 @@ function openTx(item) {
   const amtEl = $('#txAmt');
   if (item.r) {
     const { x, s } = item.r;
-    $('#txTitle').textContent = x.name || x.note || '交易';
+    $('#txTitle').textContent = item.r.name || '交易';
+    setupNameEdit(item.r);
     amtEl.className = 'tx-a' + (s === 0 ? ' flat' : item.r.delta > 0 ? ' up' : '');
     amtEl.textContent = s === 0 ? fmtMoney(x.dir === 1 ? x.amt : -x.amt) : fmtMoney(item.r.delta, { sign: true });
     $('#txSub').textContent = fmtDT(x.t) + ' · ' + srcLabel(x) + (s !== 0 && item.r.cat ? ' · ' + CATS[item.r.cat].n : '');
+    if (item.r.name !== (x.name || x.note || '')) addKV('账单原名', x.name || x.note);
     addKV('说明', x.note !== x.name ? x.note : ''); addKV('类型', x.type); addKV('支付方式', x.method); addKV('状态', x.status);
     if (x.bal != null) addKV('卡内余额', '¥' + fmtMoney(x.bal));
     kv.hidden = !kv.children.length;
@@ -389,6 +392,7 @@ function openTx(item) {
     if (x.src === 'manual') { $('#txDel').hidden = false; armDelete($('#txDel'), '删除这笔', () => { state.tx = state.tx.filter((t) => t.id !== x.id); delete state.cat[x.id]; delete state.ov[x.id]; saveState(); closeSheet(); renderAll(); toast('已删除'); }); }
   } else {
     const a = item.a; $('#txTitle').textContent = a.before == null ? '首次填写总资产' : '校准余额';
+    $('#txNameBox').hidden = true;
     if (a.before == null) { amtEl.className = 'tx-a'; amtEl.textContent = '¥' + fmtMoney(a.anchor.v); }
     else { const d = a.anchor.v - a.before; amtEl.className = 'tx-a' + (d > 0 ? ' up' : ''); amtEl.textContent = fmtMoney(d, { sign: true }); }
     $('#txSub').textContent = fmtDT(a.anchor.t);
@@ -400,6 +404,35 @@ function openTx(item) {
   }
   openSheet('#txSheet');
 }
+/* 名称 and 备注: saved when the field loses focus; 同名一起改 covers this and future imports with the same bill name */
+function setupNameEdit(r) {
+  const x = r.x, key = mkey(x);
+  const same = key ? derived.all.filter((o) => o.x.id !== x.id && mkey(o.x) === key).length : 0;
+  $('#txNameBox').hidden = false;
+  const ni = $('#txName'), mi = $('#txMemo'), all = $('#txNameAll');
+  ni.value = r.name; ni.placeholder = x.name || x.note || '名称'; mi.value = r.memo;
+  all.checked = !!(key && state.nameRules && state.nameRules[key] && !state.names[x.id]);
+  all.closest('.check').hidden = !same;
+  $('#txNameAllText').textContent = `账单里同名的另外 ${same} 笔也用这个名称，以后导入的也一样`;
+  const saveName = () => {
+    const v = ni.value.trim(); const orig = x.name || x.note || '';
+    leaveSampleKeepTx();
+    if (!state.names) state.names = {}; if (!state.nameRules) state.nameRules = {};
+    if (all.checked && key) { delete state.names[x.id]; if (v && v !== orig) state.nameRules[key] = v; else delete state.nameRules[key]; }
+    else { if (v && v !== orig && v !== state.nameRules[key]) state.names[x.id] = v; else delete state.names[x.id]; }
+    saveState(); renderAll(); $('#txTitle').textContent = v || orig || '交易';
+  };
+  for (const inp of [ni, mi]) inp.onkeydown = (e) => { if (e.key === 'Enter') inp.blur(); };
+  ni.onchange = () => { saveName(); toast(ni.value.trim() ? '名称已保存' : '已恢复账单原名'); };
+  all.onchange = () => { saveName(); toast(all.checked ? `同名的 ${same + 1} 笔都改好了` : '只改这一笔'); };
+  mi.onchange = () => {
+    const v = mi.value.trim(); leaveSampleKeepTx(); if (!state.memos) state.memos = {};
+    if (v) state.memos[x.id] = v; else delete state.memos[x.id];
+    saveState(); renderAll(); toast(v ? '备注已保存' : '已删除备注');
+  };
+}
+/* Renaming a sample transaction just edits the sample in memory; it is never saved. */
+function leaveSampleKeepTx() {}
 $('#txBtns').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || !txCur || !txCur.r) return;
   const v = +b.dataset.set; const id = txCur.r.x.id;
