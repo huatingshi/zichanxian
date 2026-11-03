@@ -23,12 +23,29 @@
 4. 安装结束会显示**服务地址**和**访问口令**。在手机上打开网页版 <https://huatingshi.github.io/zichanxian/>，
    「数据 → 邮箱同步」里填入，点「测试并保存」。
 5. 以后在微信、支付宝、中国银行导出账单时，收件邮箱填这个专用邮箱。
+6. 运行 `sudo bash server/check.sh` 确认能登录、看到账单附件。
+
+想让电脑上的 AI 助手代为部署，把 [DEPLOY_PROMPT.md](DEPLOY_PROMPT.md) 里的提示词发给它。
+
+## 暂时用主邮箱
+
+新注册的 QQ 号要满 14 天才能生成授权码。过渡期可以先用主邮箱，但请这样限制范围：
+
+1. 在 QQ 邮箱里新建文件夹「账单」，再加一条收信规则：发件人或主题含「微信支付」「支付宝」「中国银行」的邮件自动移到「账单」。
+2. 安装时「读取哪个文件夹」填这个文件夹。QQ 邮箱里自建的文件夹在 IMAP 里通常叫 `其他文件夹/账单`，以 `check.sh` 列出的名字为准。
+   这样程序只会打开这个文件夹，其他邮件一封都不读。
+3. 专用邮箱能生成授权码后，改 `/etc/zichanxian-mail.env` 里的 `IMAP_USER`、`IMAP_PASS`、`IMAP_FOLDER`，重启服务，
+   **再到主邮箱设置里把旧授权码作废**。
+
+注意：文件夹限制只约束这个程序读什么；授权码本身仍能访问整个主邮箱，所以过渡期要尽快结束。
 
 ## 日常维护
 
 - 更新：`cd zichanxian && git pull && sudo bash server/install.sh`（保留已有设置）
 - 看日志：`journalctl -u zichanxian-mail -f`
 - 改设置：编辑 `/etc/zichanxian-mail.env` 后 `systemctl restart zichanxian-mail`
+  （`IMAP_FOLDER` 只读的文件夹，`FROM_FILTER` 只读这些发件人，逗号分隔）
+- 检查邮箱：`sudo bash server/check.sh` 列出文件夹和找到的账单附件
 - 换口令：把 `ACCESS_TOKEN` 改成新的随机串（`python3 -c 'import secrets; print(secrets.token_urlsafe(32))'`），重启服务，再在手机上重新填
 - 卸载：`systemctl disable --now zichanxian-mail && rm -rf /opt/zichanxian-mail /etc/zichanxian-mail.env /etc/systemd/system/zichanxian-mail.service`，
   并在邮箱设置里作废授权码

@@ -51,4 +51,15 @@ s, h, b = req("/api/attachments/" + items[1]["id"], "t" * 32); ok(s == 200 and b
 req("/api/attachments", "t" * 32); ok(FakeIMAP.logins == 1, "listing cached (1 IMAP login)")
 for _ in range(3): req("/api/attachments", "wrong")
 s, h, b = req("/api/attachments", "t" * 32); ok(s == 429, "locked out after repeated wrong tokens")
+# folder + sender filter
+os.environ.update(IMAP_FOLDER="其他文件夹/账单", FROM_FILTER="alipay")
+seen = {}
+class FolderIMAP(FakeIMAP):
+    def select(self, box, readonly=False): seen["box"] = box; return "OK", [b"3"]
+zm.Mailbox._connect = lambda self: FolderIMAP()
+cfg2 = zm.Config(); items2 = zm.Mailbox(cfg2).refresh()
+ok(seen["box"] == '"&UXZO1mWHTvZZOQ-/&jSZTVQ-"', "Chinese folder name is sent in IMAP UTF-7: " + seen["box"])
+ok(items2 == [], "FROM_FILTER skips mail from other senders")
+os.environ["FROM_FILTER"] = "wechatpay"; items3 = zm.Mailbox(zm.Config()).refresh()
+ok(len(items3) == 2, "FROM_FILTER keeps matching senders")
 print("all server tests passed")
