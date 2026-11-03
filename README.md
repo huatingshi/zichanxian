@@ -7,3 +7,4 @@
 - `index.html`：页面本体（发布为 Claude Artifact）。
 - `tests/fixtures/`：合成的测试账单（非真实数据）。
 - `tests/mkfx.py`、`tests/mkwx.js`：生成测试账单的脚本。
+- `tests/e2e.js`：端到端测试。在仓库根目录执行 `npm i playwright xlsx@0.18.5 @zip.js/zip.js@2.7.45 pdfjs-dist@3.11.174 geist@1.3.1` 后运行 `node tests/e2e.js`。
