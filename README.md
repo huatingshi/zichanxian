@@ -7,6 +7,8 @@
 在线使用：<https://huatingshi.github.io/zichanxian/>
 （iPhone 上用 Safari 打开，点分享 →「添加到主屏幕」，之后像 App 一样全屏使用。）
 
+使用教程：<https://huatingshi.github.io/zichanxian/guide.html>
+
 ## 目录
 
 - `src/`：页面源码，按顺序拼接成一个页面
@@ -17,6 +19,7 @@
   - `build/artifact.html`：发布到 Claude Artifact 用的版本
 - `icons/`、`manifest.webmanifest`：主屏幕图标与应用信息
 - `server/`：可选的邮箱同步服务，装在自己的服务器上，见 [server/README.md](server/README.md)
+- `guide.html`：给使用者看的使用教程
 - `design/directions.html`：三个设计方向的样稿
 - `tests/fixtures/`：合成的测试账单（非真实数据）；`tests/mkfx.py`、`tests/mkwx.js` 是生成脚本
 - `tests/e2e.js`：端到端测试

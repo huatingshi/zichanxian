@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>资产线使用教程</title>
+<meta name="description" content="资产线怎么装到手机、怎么导入微信和支付宝账单、怎么看懂资产曲线。">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<style>
+/* Same plane as the app: white (or black), system type, three greys; red/green only where the app uses them. */
+:root {
+  --bg: #FFFFFF; --ink: #0B0C0E; --ink-2: #4F545C; --ink-3: #8E939B; --line: #EDEEF0; --fill: #F4F5F7;
+  --up: #E5372E; --down: #0E9C5B; --warn: #B06A00;
+  --g: 20px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #000000; --ink: #F5F5F7; --ink-2: #B4B7BD; --ink-3: #7C7F86; --line: #1F2023; --fill: #1C1C1F; --up: #FF5A50; --down: #2FD27A; --warn: #F0A63A; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #000000; --ink: #F5F5F7; --ink-2: #B4B7BD; --ink-3: #7C7F86; --line: #1F2023; --fill: #1C1C1F; --up: #FF5A50; --down: #2FD27A; --warn: #F0A63A; color-scheme: dark; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); -webkit-font-smoothing: antialiased; line-height: 1.7; font-size: 16px; }
+.wrap { max-width: 660px; margin: 0 auto; padding-block: calc(24px + env(safe-area-inset-top, 0px)) calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(var(--g), env(safe-area-inset-left, 0px)); padding-right: max(var(--g), env(safe-area-inset-right, 0px)); }
+a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; border-radius: 4px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; color: var(--ink-2); }
+.brand img { width: 28px; height: 28px; border-radius: 7px; display: block; }
+.open { display: inline-flex; align-items: center; height: 36px; padding: 0 14px; border-radius: 18px; background: var(--ink); color: var(--bg); font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+h1 { font-size: clamp(30px, 8vw, 38px); line-height: 1.25; margin: 28px 0 0; letter-spacing: 0.01em; text-wrap: balance; }
+.lead { font-size: 17px; color: var(--ink-2); margin: 12px 0 0; }
+.facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 24px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 14px 0; }
+.facts div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.facts b { font-size: 15px; }
+.facts span { font-size: 13px; color: var(--ink-3); line-height: 1.5; }
+nav.toc { margin-top: 28px; }
+nav.toc h2 { font-size: 13px; color: var(--ink-3); font-weight: 500; margin: 0 0 6px; letter-spacing: 0.04em; }
+nav.toc ol { margin: 0; padding: 0; list-style: none; columns: 2; column-gap: 24px; }
+nav.toc li { break-inside: avoid; }
+nav.toc a { display: block; padding: 5px 0; text-decoration: none; font-size: 15px; }
+nav.toc a span { color: var(--ink-3); font-variant-numeric: tabular-nums; display: inline-block; width: 24px; font-size: 13px; }
+section { margin-top: 48px; scroll-margin-top: 16px; }
+h2.s { font-size: 24px; margin: 0; line-height: 1.35; display: flex; align-items: baseline; gap: 10px; text-wrap: balance; }
+h2.s .no { font-size: 14px; color: var(--ink-3); font-weight: 600; font-variant-numeric: tabular-nums; }
+h3 { font-size: 17px; margin: 24px 0 0; }
+p { margin: 10px 0 0; }
+.muted { color: var(--ink-2); }
+ol.steps { margin: 14px 0 0; padding: 0; list-style: none; counter-reset: s; }
+ol.steps > li { counter-increment: s; position: relative; padding: 0 0 14px 34px; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: 2px; width: 22px; height: 22px; border-radius: 50%; background: var(--fill); color: var(--ink-2); font-size: 12.5px; font-weight: 700; display: grid; place-items: center; font-variant-numeric: tabular-nums; }
+ul.dots { margin: 10px 0 0; padding-left: 20px; }
+ul.dots li { margin-top: 6px; }
+.path { display: inline; font-weight: 600; }
+.path i { font-style: normal; color: var(--ink-3); font-weight: 400; margin: 0 4px; }
+.tip { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: var(--fill); font-size: 14.5px; color: var(--ink-2); }
+.tip b { color: var(--ink); }
+.warn { color: var(--warn); font-weight: 600; }
+.up { color: var(--up); font-weight: 600; } .down { color: var(--down); font-weight: 600; }
+.ui { display: inline-flex; align-items: center; gap: 4px; padding: 0 7px; border-radius: 6px; background: var(--fill); font-size: 14px; font-weight: 600; line-height: 1.6; white-space: nowrap; }
+.ui svg { width: 14px; height: 14px; }
+dl.faq { margin: 12px 0 0; }
+dl.faq dt { font-weight: 600; margin-top: 18px; }
+dl.faq dd { margin: 4px 0 0; color: var(--ink-2); }
+.tbl { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 14.5px; }
+.tbl th, .tbl td { text-align: left; padding: 9px 8px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.tbl th { color: var(--ink-3); font-weight: 500; font-size: 13px; }
+.tbl-wrap { overflow-x: auto; }
+footer { margin-top: 56px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 8px 20px; justify-content: space-between; }
+@media (max-width: 420px) { nav.toc ol { columns: 1; } .facts { grid-template-columns: 1fr; gap: 10px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <span class="brand"><img src="icons/icon-180.png" alt="">资产线</span>
+    <a class="open" href="./">打开资产线</a>
+  </div>
+
+  <h1>资产线使用教程</h1>
+  <p class="lead">把微信、支付宝的账单导进来，资产线会把你的总资产画成一条像股价一样的曲线：花一笔就往下走，进一笔就往上走。</p>
+
+  <div class="facts">
+    <div><b>不用注册</b><span>打开网页就能用</span></div>
+    <div><b>数据只在你手机上</b><span>账单在手机里解析，不上传</span></div>
+    <div><b>免费</b><span>代码公开在 GitHub</span></div>
+  </div>
+
+  <nav class="toc" aria-label="目录">
+    <h2>目录</h2>
+    <ol>
+      <li><a href="#install"><span>1</span>装到手机桌面</a></li>
+      <li><a href="#export"><span>2</span>导出账单</a></li>
+      <li><a href="#import"><span>3</span>导入账单</a></li>
+      <li><a href="#home"><span>4</span>看懂首页</a></li>
+      <li><a href="#record"><span>5</span>随手记一笔</a></li>
+      <li><a href="#calib"><span>6</span>校准余额</a></li>
+      <li><a href="#cats"><span>7</span>分类</a></li>
+      <li><a href="#repay"><span>8</span>信用卡和分期</a></li>
+      <li><a href="#subs"><span>9</span>订阅</a></li>
+      <li><a href="#backup"><span>10</span>备份和换手机</a></li>
+      <li><a href="#mail"><span>11</span>邮箱同步（进阶）</a></li>
+      <li><a href="#faq"><span>12</span>常见问题</a></li>
+    </ol>
+  </nav>
+
+  <section id="install">
+    <h2 class="s"><span class="no">1</span>装到手机桌面</h2>
+    <p>资产线是一个网页，装到桌面后用起来和 App 一样。</p>
+    <ol class="steps">
+      <li>用 iPhone 自带的 <b>Safari</b> 打开 <a href="./">huatingshi.github.io/zichanxian</a>。</li>
+      <li>点屏幕底部的分享按钮（方框加向上的箭头）。</li>
+      <li>往下找到「添加到主屏幕」，点「添加」。</li>
+    </ol>
+    <p>桌面上会出现黑底红线的「资产线」图标。以后都从这个图标打开，全屏显示，没有地址栏。</p>
+    <div class="tip"><b>以后都从桌面图标打开。</b>从图标打开和在 Safari 里直接打开网址，数据是分开保存的，混着用会以为数据不见了。安卓手机用 Chrome 打开，菜单里选「添加到主屏幕」。</div>
+  </section>
+
+  <section id="export">
+    <h2 class="s"><span class="no">2</span>导出账单</h2>
+    <p>账单要先从微信、支付宝里申请导出，发到你的邮箱。导出后一般几分钟内收到邮件。</p>
+
+    <h3>微信</h3>
+    <p class="path">我<i>›</i>服务<i>›</i>钱包<i>›</i>账单<i>›</i>右上角「…」<i>›</i>下载账单<i>›</i>用于个人对账</p>
+    <p class="muted">选好时间范围，填上邮箱。收到的邮件里是一个下载链接，下载得到一个 .zip 压缩包。<b>解压密码</b>会发到微信的「微信支付」消息里。</p>
+
+    <h3>支付宝</h3>
+    <p class="path">我的<i>›</i>账单<i>›</i>右上角「…」<i>›</i>开具交易流水证明<i>›</i>用于个人对账</p>
+    <p class="muted">邮件附件是一个 .zip 压缩包，<b>解压密码</b>在支付宝的消息里。</p>
+
+    <h3>中国银行</h3>
+    <p class="muted">在中国银行 App 里申请电子版的账户明细，发到邮箱，附件是 PDF 或装着 PDF 的压缩包。<span class="warn">中国银行的 PDF 目前只认得部分版式</span>，认不出时会提示；这时可以先只导入微信和支付宝，银行卡的收支用「记一笔」补上。</p>
+
+    <h3>把附件存到手机里</h3>
+    <ol class="steps">
+      <li>在手机邮箱 App（比如 QQ 邮箱）里打开那封邮件。</li>
+      <li>点开附件或下载链接，选「存储到文件」，存进 iPhone 的「文件」App。</li>
+    </ol>
+  </section>
+
+  <section id="import">
+    <h2 class="s"><span class="no">3</span>导入账单</h2>
+    <ol class="steps">
+      <li>打开资产线，点右上角的下载图标 <span class="ui"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10m0 0-4-4m4 4 4-4M5 15v4h14v-4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>，弹出「导入账单」。</li>
+      <li>点「选择文件」，在「文件」App 里找到刚存的账单，可以一次选多个。<b>压缩包不用自己解压。</b></li>
+      <li>点「解析」。有密码的压缩包会在下面出现密码框，分别填上它的解压密码，再点一次「解析」。</li>
+      <li>每个文件下面会显示认出了多少笔、新增多少笔。</li>
+      <li>第一次导入时，填一下<b>现在的总资产</b>：把微信零钱、支付宝余额和余额宝、银行卡余额加起来填一个数。点「保存」。</li>
+    </ol>
+    <p>资产线会以你填的这个数为终点，按账单往回推算出过去每一天的资产，曲线就画出来了。</p>
+    <div class="tip"><b>可以放心重复导入。</b>已经导入过的交易会自动跳过，所以每个月导出一次、时间范围有重叠也没关系。</div>
+  </section>
+
+  <section id="home">
+    <h2 class="s"><span class="no">4</span>看懂首页</h2>
+    <ul class="dots">
+      <li><b>大数字</b>是现在的总资产，下面一行是选中时间段里的涨跌，<span class="up">红色是涨</span>，<span class="down">绿色是跌</span>，和炒股软件的习惯一样。</li>
+      <li><b>曲线</b>每遇到一笔交易就跳一下。<b>手指按住曲线左右拖动</b>，可以看任意时刻的资产，以及那一刻是哪笔交易。</li>
+      <li>曲线下面的 <span class="ui">1周</span> <span class="ui">1月</span> <span class="ui">3月</span> <span class="ui">1年</span> <span class="ui">全部</span> 切换时间范围。</li>
+      <li><b>提醒</b>：快到期的信用卡还款、快扣费的订阅会出现在这里。</li>
+      <li><b>明细</b>按天折叠，默认只显示最近 5 天，点某一天展开，最下面「显示更多」看更早的。</li>
+    </ul>
+
+    <h3>为什么有些交易写着「未计入」</h3>
+    <p>资产线算的是<b>总资产</b>，钱在你自己的账户之间挪动不算涨跌，所以这些会自动排除：</p>
+    <div class="tbl-wrap"><table class="tbl">
+      <thead><tr><th>标注</th><th>例子</th></tr></thead>
+      <tbody>
+        <tr><td>自己账户间转移</td><td>零钱提现到银行卡、银行卡转进余额宝</td></tr>
+        <tr><td>还信用卡</td><td>用储蓄卡还信用卡（消费时已经算过一次）</td></tr>
+        <tr><td>已在微信 / 支付宝账单里</td><td>同一笔钱在银行流水和微信账单里各出现一次，只算一次</td></tr>
+        <tr><td>交易关闭、已退款</td><td>没付成功的订单，或全额退款的订单</td></tr>
+      </tbody>
+    </table></div>
+    <p>判断错了的话，点那笔交易，改成「计为支出」「计为收入」或「不计入」。</p>
+  </section>
+
+  <section id="record">
+    <h2 class="s"><span class="no">5</span>随手记一笔</h2>
+    <p>现金、没导入的账户，或者想马上记下来的花销，点底部中间的<b>笔</b>：</p>
+    <ol class="steps">
+      <li>选「支出」或「收入」，填金额。</li>
+      <li>选分类；先写备注的话，比如「打车」，会自动选好「交通」。</li>
+      <li>点「保存」。</li>
+    </ol>
+    <p class="muted">之后导入的账单里如果有同金额、两天内的同一笔，资产线会用账单里那笔替代手记的这笔，不会重复计算。</p>
+  </section>
+
+  <section id="calib">
+    <h2 class="s"><span class="no">6</span>校准余额</h2>
+    <p>账单之外总有一些钱的变化：现金、利息、没导入的银行卡。时间久了，曲线上的数和你实际的钱会对不上。</p>
+    <p>这时点右上角的准星图标，填上实际的总资产。曲线会在这一刻记一笔「校准」，把差额补上。建议每次导入账单后都顺手校准一次。</p>
+  </section>
+
+  <section id="cats">
+    <h2 class="s"><span class="no">7</span>分类</h2>
+    <p>底部「分类」页用圆环图显示钱花在了哪里，可以看本月、上月、近 3 月、今年，也可以切到「收入」。点某个分类，能看到这一类的每一笔。</p>
+    <p class="muted">分类是按商户名自动判断的，比如瑞幸、美团外卖归「餐饮」，滴滴归「交通」。分错了就点那笔交易改掉，勾上「以后同一商户都用这个分类」，以后就不用再改了。</p>
+  </section>
+
+  <section id="repay">
+    <h2 class="s"><span class="no">8</span>信用卡和分期</h2>
+    <ol class="steps">
+      <li>底部「还款」页，点「添加信用卡、花呗或白条」，填名称和每月还款日。</li>
+      <li>收到账单后点「填账单金额」，填本期应还。</li>
+      <li>有分期的话点「加分期」，填每期金额、总期数和已经还了几期。</li>
+      <li>还完后点「标记已还」，下次还款日和分期进度会自动往后走。</li>
+    </ol>
+    <p class="muted">到期前 7 天会在首页「提醒」里出现，逾期会标红。网页没法给手机推送通知，想准时收到提醒，可以在 iPhone「提醒事项」里加一条每月重复的提醒。</p>
+  </section>
+
+  <section id="subs">
+    <h2 class="s"><span class="no">9</span>订阅</h2>
+    <p>视频会员、iCloud、音乐会员这类自动扣费，在底部「订阅」页添加，会算出每月、每年一共花多少，扣费前 3 天提醒。</p>
+    <p class="muted">导入账单后，资产线会从账单里找出每月固定扣同样金额的商户，列在「账单里发现的订阅」，一键就能添加。</p>
+  </section>
+
+  <section id="backup">
+    <h2 class="s"><span class="no">10</span>备份和换手机</h2>
+    <p>数据只存在这台手机的浏览器里，<b>清除 Safari 的网站数据会把它删掉</b>，换手机也不会自动带过去。</p>
+    <ol class="steps">
+      <li>首页拉到最下面，点「下载备份」，选「存储到文件」，最好存到 iCloud 云盘。</li>
+      <li>在新手机上打开资产线，首页最下面点「从备份恢复」，选这个备份文件。</li>
+    </ol>
+    <p class="muted">建议每个月备份一次。就算忘了备份，也可以从邮箱里重新导入账单，再校准一次余额。</p>
+  </section>
+
+  <section id="mail">
+    <h2 class="s"><span class="no">11</span>邮箱同步（进阶）</h2>
+    <p>如果你有自己的云服务器，可以装一个小程序，让资产线直接从一个专门收账单的邮箱里取账单，省掉「存储到文件、选文件」这两步。解压密码仍然要手动填。</p>
+    <p class="muted">安装方法见 <a href="https://github.com/huatingshi/zichanxian/blob/main/server/README.md">server/README.md</a>。装好后在首页最下面「邮箱同步」里填上你自己服务器的地址和访问口令。<b>访问口令不要告诉别人</b>，拿到口令的人能取走你的账单文件。</p>
+  </section>
+
+  <section id="faq">
+    <h2 class="s"><span class="no">12</span>常见问题</h2>
+    <dl class="faq">
+      <dt>我的账单会被别人看到吗？</dt>
+      <dd>不会。网页只是一段程序，账单在你手机上解析，记录存在你手机的浏览器里，不经过任何服务器。别人打开同一个网址，看到的是他自己的数据。</dd>
+      <dt>解压密码在哪里？</dt>
+      <dd>微信账单的在微信「微信支付」消息里，支付宝的在支付宝消息里，每次导出都不一样。</dd>
+      <dt>曲线上的数和我实际的钱对不上。</dt>
+      <dd>多半是有没导入的账户，或者有现金、利息。用右上角的准星图标「校准余额」填实际数字就行，详见第 6 节。</dd>
+      <dt>某笔交易算错了，或者重复了。</dt>
+      <dd>点那笔交易，在「是否计入曲线」里改成正确的选项。改过的交易会标「手动设置」，想改回来点「恢复自动判断」。</dd>
+      <dt>第一次打开看到的数字是谁的？</dt>
+      <dd>那是示例数据，左上角写着「示例数据」。导入你自己的账单或记第一笔后，示例就会被替换。</dd>
+      <dt>想从头开始。</dt>
+      <dd>首页最下面「清空数据」，会删除这台手机上的全部记录，无法撤销，需要的话先备份。</dd>
+    </dl>
+  </section>
+
+  <footer>
+    <span>资产线 · 代码公开在 <a href="https://github.com/huatingshi/zichanxian">GitHub</a></span>
+    <a href="./">打开资产线</a>
+  </footer>
+</div>
+</body>
+</html>

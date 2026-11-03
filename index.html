@@ -122,7 +122,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, .filepick:focus
 .row { position: relative; width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; min-height: 64px; padding: 12px 0; text-align: left; }
 .row + .row::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: var(--line); }
 .rows > [hidden] + .row::before { display: none; }
-button.row:active { opacity: 0.6; }
+button.row:active, a.row:active { opacity: 0.6; }
+a.row { text-decoration: none; color: inherit; }
 .row-m { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .row-t { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px; }
 .row-t > span { overflow: hidden; text-overflow: ellipsis; }
@@ -312,7 +313,7 @@ button.row:active { opacity: 0.6; }
       <div><span class="k">支出</span><span class="v" id="sOut">0</span></div>
       <div><span class="k" id="sCntK">计入笔数</span><span class="v" id="sCnt">0</span></div>
     </div>
-    <div class="note" id="sampleNotice" hidden>现在显示的是<b>示例数据</b>，不是你的账单。点右上角的导入按钮导入账单，或点底部中间的笔记一笔，示例就会被替换。</div>
+    <div class="note" id="sampleNotice" hidden>现在显示的是<b>示例数据</b>，不是你的账单。点右上角的导入按钮导入账单，或点底部中间的笔记一笔，示例就会被替换。第一次用？先看<a href="https://huatingshi.github.io/zichanxian/guide.html" target="_blank" rel="noopener">使用教程</a>。</div>
 
     <section class="sec" id="remindSec" hidden>
       <div class="sec-h"><h2>提醒</h2></div>
@@ -336,6 +337,7 @@ button.row:active { opacity: 0.6; }
     <section class="sec">
       <div class="sec-h"><h2>数据</h2></div>
       <div class="rows">
+        <a class="row link" id="guideRow" href="https://huatingshi.github.io/zichanxian/guide.html" target="_blank" rel="noopener"><span class="row-m"><span class="row-t">使用教程</span><span class="row-s">怎么导出账单、导入、看懂曲线</span></span><span class="chev" data-icon="chev"></span></a>
         <button class="row link" id="importRow" type="button"><span class="row-m"><span class="row-t">导入账单</span><span class="row-s">微信 .xlsx、支付宝 .csv、中国银行 .pdf 或 .zip</span></span><span class="chev" data-icon="chev"></span></button>
         <button class="row link" id="mailRow" type="button"><span class="row-m"><span class="row-t">邮箱同步</span><span class="row-s" id="mailRowSub">连接你服务器上的邮箱同步服务，一键取账单</span></span><span class="chev" data-icon="chev"></span></button>
         <button class="row link" id="calibRow" type="button"><span class="row-m"><span class="row-t">校准余额</span><span class="row-s">填一下实际总资产，修正曲线</span></span><span class="chev" data-icon="chev"></span></button>
