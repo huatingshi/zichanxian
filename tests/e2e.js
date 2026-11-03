@@ -2,7 +2,7 @@ const { chromium } = require('playwright');
 const fs = require('fs'); const path = require('path');
 const L = path.join(__dirname, '..', 'node_modules');
 const map = { 'zip-full.min.js': L + '/@zip.js/zip.js/dist/zip-full.min.js', 'xlsx.full.min.js': L + '/xlsx/dist/xlsx.full.min.js', 'pdf.min.js': L + '/pdfjs-dist/build/pdf.min.js', 'pdf.worker.min.js': L + '/pdfjs-dist/build/pdf.worker.min.js' };
-const body = fs.readFileSync('index.html', 'utf8');
+const body = fs.readFileSync('build/artifact.html', 'utf8');
 const html = '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>' + body + '</body></html>';
 (async () => {
   const b = await chromium.launch();

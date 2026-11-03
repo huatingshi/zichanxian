@@ -1,5 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>资产线</title>
-<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="导入微信、支付宝、中国银行账单，画出像股价一样涨跌的总资产曲线。数据只存在本机。">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="资产线">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; font-size: 14px; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+/* keeps scrolled content from showing under the status bar when opened from the home screen */
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 35; background: var(--bg); }
+</style>
+</head>
+<body>
 <style>
 /* Layout: "纯净行情" — one white (or black) plane, no cards, no shadows. 20px gutter; the curve runs edge to edge.
    Hierarchy comes from size, weight and three greys; red / green appear only for gains, losses and income. */
@@ -1161,13 +1185,28 @@ $('#clearYes').addEventListener('click', () => {
 });
 
 /* backup / restore */
+/* Inside Claude the viewer's downloads capability saves the file; on a normal website (GitHub Pages)
+   the iPhone share sheet ("存储到文件") is used, with a plain download as the last resort. */
+const IN_CLAUDE = !!(window.claude && window.claude.use);
 let downloads = null;
-(async () => { try { downloads = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { downloads = null; } $('#backupBtn').hidden = !downloads; })();
+(async () => {
+  if (!IN_CLAUDE) { $('#backupBtn').hidden = false; return; }
+  try { downloads = await window.claude.use('downloads'); } catch (e) { downloads = null; }
+  $('#backupBtn').hidden = !downloads;
+})();
+async function saveTextFile(name, text) {
+  if (downloads) { await downloads.save({ filename: name, data: text }); return; }
+  const file = new File([text], name, { type: 'application/json' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; }
+  const url = URL.createObjectURL(file); const a = document.createElement('a');
+  a.href = url; a.download = name.replace(/^资产线备份/, 'zichanxian-backup'); document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
 $('#backupBtn').addEventListener('click', async () => {
   if (state.sample) { toast('现在是示例数据，没有可备份的内容'); return; }
   const d = new Date(); const name = `资产线备份-${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}.json`;
-  try { await downloads.save({ filename: name, data: JSON.stringify(state) }); toast('备份已保存'); }
-  catch (e) { if (e && e.code === 'declined') return; toast('无法保存备份文件'); }
+  try { await saveTextFile(name, JSON.stringify(state)); toast('备份已保存'); }
+  catch (e) { if (e && (e.code === 'declined' || e.name === 'AbortError')) return; toast('无法保存备份文件'); }
 });
 $('#restoreInput').addEventListener('change', async (e) => {
   const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
@@ -1854,3 +1893,6 @@ new MutationObserver(drawChart).observe(document.documentElement, { attributes: 
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawChart);
 })();
 </script>
+
+</body>
+</html>
