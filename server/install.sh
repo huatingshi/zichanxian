@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 资产线 · 邮箱同步服务 一键安装（Debian / Ubuntu）
+# thread 邮箱同步服务 一键安装（Debian / Ubuntu）
 # 用法：在仓库目录里执行  sudo bash server/install.sh
 # 再次运行会更新程序，保留已有设置；想重新填写设置，先删除 /etc/zichanxian-mail.env
 set -euo pipefail
@@ -76,7 +76,7 @@ TOKEN="$(grep -E '^ACCESS_TOKEN=' "$ENVF" | cut -d= -f2-)"
 
 cat > /etc/systemd/system/$SVC.service <<EOF
 [Unit]
-Description=资产线 邮箱同步服务
+Description=thread 邮箱同步服务
 After=network-online.target
 Wants=network-online.target
 
@@ -139,7 +139,7 @@ if grep -q '^IMAP_PASS=请在这里填写授权码' "$ENVF"; then
   say "还差授权码：运行 sudo nano $ENVF ，把 IMAP_PASS= 后面换成授权码，保存后运行 sudo systemctl restart $SVC"
 fi
 
-say "完成。在资产线网页版「数据 → 邮箱同步」里填："
+say "完成。在 thread 网页版「数据 → 邮箱同步」里填："
 echo "  服务地址：https://$DOMAIN"
 echo "  访问口令：$TOKEN"
 echo

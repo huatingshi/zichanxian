@@ -1,4 +1,4 @@
-<title>资产线</title>
+<title>thread</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: "纯净行情" — one white (or black) plane, no cards, no shadows. 20px gutter; the curve runs edge to edge.
@@ -1212,12 +1212,12 @@ async function saveTextFile(name, text) {
   const file = new File([text], name, { type: 'application/json' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: name }); return; }
   const url = URL.createObjectURL(file); const a = document.createElement('a');
-  a.href = url; a.download = name.replace(/^资产线备份/, 'zichanxian-backup'); document.body.append(a); a.click(); a.remove();
+  a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 $('#backupBtn').addEventListener('click', async () => {
   if (state.sample) { toast('现在是示例数据，没有可备份的内容'); return; }
-  const d = new Date(); const name = `资产线备份-${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}.json`;
+  const d = new Date(); const name = `thread-backup-${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}.json`;
   try { await saveTextFile(name, JSON.stringify(state)); toast('备份已保存'); }
   catch (e) { if (e && (e.code === 'declined' || e.name === 'AbortError')) return; toast('无法保存备份文件'); }
 });
@@ -1228,7 +1228,7 @@ $('#restoreInput').addEventListener('change', async (e) => {
     if (!s || s.v !== 1 || !Array.isArray(s.tx) || !Array.isArray(s.anchors)) throw new Error('bad');
     s.sample = false; state = migrate(s);
     saveState(); renderAll(); toast(`已恢复 ${state.tx.length} 笔记录`);
-  } catch (er) { toast('这不是资产线的备份文件'); }
+  } catch (er) { toast('这不是 thread 的备份文件'); }
 });
 
 /* ---------------- parsing ---------------- */

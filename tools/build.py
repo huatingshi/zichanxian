@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build both deployments of 资产线 from src/.
+"""Build both deployments of thread from src/.
 
 - build/artifact.html : page content only (Claude Artifact wraps it in its own <html>/<head>).
 - index.html          : full standalone document for GitHub Pages, with home-screen app metadata.
@@ -32,7 +32,7 @@ HEAD = f"""<!doctype html>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="资产线">
+<meta name="apple-mobile-web-app-title" content="thread">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="apple-touch-icon" href="icons/icon-180.png">

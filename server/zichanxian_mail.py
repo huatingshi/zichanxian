@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""资产线 · 邮箱同步服务
+"""thread 邮箱同步服务
 
 Logs into a dedicated bill mailbox over IMAP (read-only), finds bill attachments
-(.zip / .xlsx / .xls / .csv / .pdf) and hands the raw files to the 资产线 web page.
+(.zip / .xlsx / .xls / .csv / .pdf) and hands the raw files to the thread web page.
 It never unzips, parses or stores bills; parsing stays on the phone.
 
 Configuration comes from environment variables (see install.sh, /etc/zichanxian-mail.env):

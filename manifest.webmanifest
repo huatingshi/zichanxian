@@ -1,6 +1,6 @@
 {
-  "name": "资产线",
-  "short_name": "资产线",
+  "name": "thread",
+  "short_name": "thread",
   "description": "导入微信、支付宝、中国银行账单，画出像股价一样涨跌的总资产曲线。",
   "lang": "zh-CN",
   "start_url": "./",
