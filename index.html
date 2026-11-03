@@ -184,13 +184,13 @@ button.row:active { opacity: 0.6; }
   background: color-mix(in srgb, var(--bg) 92%, transparent); -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px);
   box-shadow: inset 0 1px 0 var(--line);
   padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(4px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
-.tabbar .in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(2, 1fr) 1.25fr repeat(2, 1fr); align-items: center; }
+.tabbar .in { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; }
 .tabbar button { height: 50px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 10.5px; color: var(--ink-3); position: relative; }
 .tabbar button svg { width: 25px; height: 25px; }
 .tabbar button[aria-selected="true"] { color: var(--ink); font-weight: 600; }
 .tabbar .badge { position: absolute; top: 5px; left: calc(50% + 8px); width: 7px; height: 7px; border-radius: 50%; background: var(--up); }
-.tabbar .rec { justify-self: center; height: 38px; padding: 0 16px 0 13px; border-radius: 19px; background: var(--ink); color: var(--bg); display: inline-flex; flex-direction: row; align-items: center; gap: 6px; font-size: 14.5px; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
-.tabbar .rec svg { width: 17px; height: 17px; }
+.tabbar .rec { justify-self: center; width: 52px; height: 40px; border-radius: 20px; background: var(--ink); color: var(--bg); display: grid; place-items: center; }
+.tabbar .rec svg { width: 22px; height: 22px; }
 .tabbar .rec:active { opacity: 0.75; }
 
 /* sheets */
@@ -280,7 +280,7 @@ button.row:active { opacity: 0.6; }
       <div><span class="k">支出</span><span class="v" id="sOut">0</span></div>
       <div><span class="k" id="sCntK">计入笔数</span><span class="v" id="sCnt">0</span></div>
     </div>
-    <div class="note" id="sampleNotice" hidden>现在显示的是<b>示例数据</b>，不是你的账单。点右上角的导入按钮导入账单，或点底部的「记一笔」，示例就会被替换。</div>
+    <div class="note" id="sampleNotice" hidden>现在显示的是<b>示例数据</b>，不是你的账单。点右上角的导入按钮导入账单，或点底部中间的笔记一笔，示例就会被替换。</div>
 
     <section class="sec" id="remindSec" hidden>
       <div class="sec-h"><h2>提醒</h2></div>
@@ -377,7 +377,7 @@ button.row:active { opacity: 0.6; }
 <nav class="tabbar" aria-label="页面"><div class="in" role="tablist" id="tabbar">
   <button role="tab" data-tab="trend" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.5h4.5v-5.5H12v3h4.5V7.5H21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>走势</button>
   <button role="tab" data-tab="cats" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3.75V12l6.6 4.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>分类</button>
-  <button class="rec" id="fab" type="button"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16h3.2L15.6 7.6a1.6 1.6 0 0 0 0-2.3l-.9-.9a1.6 1.6 0 0 0-2.3 0L4 12.8V16zM11.5 5.5l3 3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>记一笔</button>
+  <button class="rec" id="fab" type="button" aria-label="记一笔" title="记一笔"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 19.5h4L18.8 9.2a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4.5 15.5v4zM13.5 6.5l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   <button role="tab" data-tab="repay" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M7 14.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>还款<span class="badge" id="repayBadge" hidden></span></button>
   <button role="tab" data-tab="subs" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9a7.5 7.5 0 0 0-13.8-1.6M5 15a7.5 7.5 0 0 0 13.8 1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4.5 3.8v3.9h3.9M19.5 20.2v-3.9h-3.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>订阅<span class="badge" id="subBadge" hidden></span></button>
 </div></nav>
@@ -1030,7 +1030,7 @@ function renderList() {
   }
   if (filter !== 'off') for (const a of derived.anchorRecs) if (a.anchor.t > view.t0 && a.anchor.t <= view.t1) items.push({ t: a.anchor.t, a });
   items.sort((p, q) => q.t - p.t);
-  if (!items.length) { list.textContent = ''; list.append(el('div', 'empty', state.tx.length ? '这个时间范围里没有记录。' : '还没有记录。点右上角导入账单，或点底部的「记一笔」。')); $('#moreBtn').hidden = true; $('#listMeta').textContent = ''; $('#expandAll').hidden = true; return; }
+  if (!items.length) { list.textContent = ''; list.append(el('div', 'empty', state.tx.length ? '这个时间范围里没有记录。' : '还没有记录。点右上角导入账单，或点底部中间的笔记一笔。')); $('#moreBtn').hidden = true; $('#listMeta').textContent = ''; $('#expandAll').hidden = true; return; }
   const nDays = renderDays(list, items, listLimit);
   const nTx = items.filter((it) => it.r).length;
   $('#listMeta').textContent = `${nTx} 笔 · ${nDays} 天`;
