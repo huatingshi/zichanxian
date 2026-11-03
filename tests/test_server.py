@@ -62,4 +62,30 @@ ok(seen["box"] == '"&UXZO1mWHTvZZOQ-/&jSZTVQ-"', "Chinese folder name is sent in
 ok(items2 == [], "FROM_FILTER skips mail from other senders")
 os.environ["FROM_FILTER"] = "wechatpay"; items3 = zm.Mailbox(zm.Config()).refresh()
 ok(len(items3) == 2, "FROM_FILTER keeps matching senders")
+# bills that arrive as a download link (微信支付)
+class FakeResp:
+    def __init__(self, data, cd=""): self.data, self.headers = data, {"Content-Disposition": cd}
+    def read(self, n): return self.data[:n]
+    def __enter__(self): return self
+    def __exit__(self, *a): pass
+fetched = []
+def fake_open(req, timeout=0):
+    fetched.append(req.full_url)
+    if "expired" in req.full_url: return FakeResp(b"<html>link expired</html>")
+    return FakeResp(WX, "attachment; filename*=UTF-8''%E5%BE%AE%E4%BF%A1%E6%94%AF%E4%BB%98%E8%B4%A6%E5%8D%95.zip")
+zm._opener.open = fake_open
+def link_msg(subject, url):
+    m = email.message.EmailMessage(); m["From"] = "微信支付 <wechatpay@tencent.com>"; m["Subject"] = subject; m["Date"] = "Tue, 03 Nov 2026 15:47:00 +0800"
+    m.set_content("你好"); m.add_alternative(f'<p>请<a href="https://evil.example/steal">别点</a> <a href="{url}">点击下载</a></p>', subtype="html"); return m.as_bytes()
+MSGS2 = {b"7": link_msg("微信支付-账单流水文件(20260803-20261103)", "https://tenpay.wechatpay.cn/userroll/download?token=abc&amp;x=1"),
+         b"8": link_msg("微信支付-账单流水文件(旧)", "https://tenpay.wechatpay.cn/userroll/download?expired=1")}
+class LinkIMAP(FakeIMAP):
+    def uid(self, cmd, *a): return ("OK", [b"7 8"]) if cmd == "SEARCH" else ("OK", [(b"x", MSGS2[a[0]]), b")"])
+os.environ.update(IMAP_FOLDER="INBOX", FROM_FILTER="")
+zm.Mailbox._connect = lambda self: LinkIMAP()
+lb = zm.Mailbox(zm.Config()); li = lb.refresh()
+ok(len(li) == 1 and li[0]["name"] == "微信支付账单.zip" and lb.items[li[0]["id"]]["data"] == WX, "download link is followed and named from Content-Disposition: %s" % [i["name"] for i in li])
+ok(all("evil.example" not in u for u in fetched) and "&amp;" not in fetched[0], "only allow-listed links are fetched (html entities decoded): %s" % fetched)
+ok(len(lb.skipped) == 1 and "网页而不是文件" in lb.skipped[0]["reason"], "an expired link is reported, not imported: " + (lb.skipped[0]["reason"] if lb.skipped else ""))
+ok(not zm.host_allowed("https://tenpay.wechatpay.cn.evil.com/x") and zm.host_allowed("https://x.tenpay.com/y") and not zm.host_allowed("http://tenpay.com/"), "host allow-list is strict")
 print("all server tests passed")

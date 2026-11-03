@@ -54,6 +54,12 @@ let failed = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m);
   ok(await p.locator('#fileList .fileres').count() === 0, 'second fetch finds nothing new');
   await p.keyboard.press('Escape');
 
+  // 2b) a bank PDF laid out differently (row numbers, slashed dates, +/- amounts)
+  await p.click('#importBtn'); await p.setInputFiles('#fileInput', [path.join(__dirname, 'fixtures/boc-variant.pdf')]);
+  await p.click('#parseBtn'); await p.waitForFunction(() => !document.querySelector('#parseBtn .spinner'));
+  ok(/中国银行.*共 3 笔/.test(await p.textContent('#fileList')), 'variant bank PDF parsed: ' + await p.textContent('#fileList .fileres'));
+  await p.keyboard.press('Escape');
+
   // 3) classification of the combined data
   const st = await p.evaluate(() => JSON.parse(localStorage.getItem('zichanxian.v1')));
   ok(st.tx.length === 19 && st.mailSeen.length === 3, `stored ${st.tx.length} tx, ${st.mailSeen.length} mail attachments marked seen`);

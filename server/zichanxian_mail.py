@@ -20,10 +20,14 @@ import datetime
 import email
 import email.policy
 import email.utils
+import email.message
+import urllib.error
 import hashlib
 import hmac
 import imaplib
 import json
+import html
+import urllib.request
 import base64
 import re
 import os
@@ -123,6 +127,83 @@ def list_folders(m):
     return names
 
 
+# Some bills (e.g. 微信支付) arrive as a download link instead of an attachment. Only links on these
+# sites are followed, so the server never fetches arbitrary URLs found in mail.
+LINK_HOSTS = ("tenpay.com", "wechatpay.cn", "weixin.qq.com", "wx.qq.com", "qq.com", "alipay.com",
+              "alipayobjects.com", "boc.cn", "bankofchina.com")
+HREF_RE = re.compile(r"""href\s*=\s*["']([^"']+)["']""", re.I)
+URL_RE = re.compile(r"""https://[^\s"'<>()]+""")
+MAX_DOWNLOAD = 25 * 1024 * 1024
+
+
+def host_allowed(url):
+    host = (urlparse(url).hostname or "").lower()
+    return url.startswith("https://") and any(host == h or host.endswith("." + h) for h in LINK_HOSTS)
+
+
+def body_links(msg):
+    urls = []
+    for part in msg.walk():
+        if part.get_content_type() not in ("text/html", "text/plain"):
+            continue
+        try:
+            text = part.get_content()
+        except Exception:
+            continue
+        for u in HREF_RE.findall(text) + URL_RE.findall(text):
+            u = html.unescape(u).strip()
+            if host_allowed(u) and u not in urls:
+                urls.append(u)
+    urls.sort(key=lambda u: 0 if re.search(r"down|file|bill|attach|export", u, re.I) else 1)
+    return urls[:6]
+
+
+class SafeRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not host_allowed(newurl):
+            raise urllib.error.URLError("跳转到了不在白名单里的网站：" + (urlparse(newurl).hostname or ""))
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+_opener = urllib.request.build_opener(SafeRedirect, urllib.request.HTTPSHandler(context=ssl.create_default_context()))
+
+
+def sniff_ext(data: bytes):
+    if data[:4] == b"%PDF":
+        return ".pdf"
+    if data[:2] == b"PK":
+        return ".zip"
+    if data[:4] == b"\xd0\xcf\x11\xe0":
+        return ".xls"
+    return None
+
+
+def download_link(url, fallback_name):
+    """Fetch a bill file from an allow-listed link. Returns (name, bytes) or raises with a reason."""
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
+        "Accept": "*/*"})
+    with _opener.open(req, timeout=40) as r:
+        data = r.read(MAX_DOWNLOAD + 1)
+        if len(data) > MAX_DOWNLOAD:
+            raise ValueError("文件太大")
+        ext = sniff_ext(data)
+        if not ext:
+            raise ValueError("链接打开的是网页而不是文件（可能需要在微信里打开，或链接已过期）")
+        name = ""
+        cd = r.headers.get("Content-Disposition", "")
+        if cd:
+            hm = email.message.Message(); hm["content-disposition"] = cd
+            name = hm.get_filename() or ""
+            try:
+                name = name.encode("latin-1").decode("utf-8")
+            except (UnicodeEncodeError, UnicodeDecodeError):
+                pass
+        if not name.lower().endswith(EXTS):
+            name = (name.rsplit(".", 1)[0] if name else fallback_name) + ext
+        return name, data
+
+
 def extract_attachments(raw: bytes):
     """Return [(filename, payload_bytes)] for bill-like attachments in one raw message."""
     msg = email.message_from_bytes(raw, policy=email.policy.default)
@@ -158,6 +239,7 @@ class Mailbox:
         self.items = {}           # id -> item (with data)
         self.listed_at = 0.0
         self.listing = []
+        self.skipped = []         # bill mails whose file could not be fetched, with the reason
 
     def _connect(self):
         ctx = ssl.create_default_context()
@@ -181,7 +263,7 @@ class Mailbox:
                 since = (datetime.date.today() - datetime.timedelta(days=self.cfg.days)).strftime("%d-%b-%Y")
                 typ, data = m.uid("SEARCH", None, "SINCE", since)
                 uids = (data[0] or b"").split()[-self.cfg.max_messages:]
-                listing = []
+                listing, skipped = [], []
                 for uid in reversed(uids):
                     key = (uidvalidity, uid)
                     if key not in self.by_uid:
@@ -190,11 +272,27 @@ class Mailbox:
                         msg, atts = extract_attachments(raw)
                         meta = message_meta(msg)
                         if self.cfg.from_filter and not any(f in meta["from"].lower() for f in self.cfg.from_filter):
-                            atts = []
+                            self.by_uid[key] = []
+                            continue
+                        failed = None
+                        if not atts:
+                            links = body_links(msg)
+                            reasons = []
+                            for u in links:
+                                try:
+                                    atts.append(download_link(u, re.sub(r"[\\/:*?\"<>|]", "_", meta["subject"])[:60] or "账单"))
+                                    break
+                                except Exception as e:  # noqa: BLE001 - report the reason to the page
+                                    reasons.append(f"{urlparse(u).hostname}{urlparse(u).path[:40]}：{e}")
+                            if links and not atts:
+                                failed = dict(meta, reason="邮件里是下载链接，服务器没能下载。" + "；".join(reasons[:2]))
                         items = []
                         for name, payload in atts:
                             item = dict(meta, id=hashlib.sha256(payload).hexdigest()[:24], name=name, size=len(payload), data=payload)
                             items.append(item)
+                        if failed:
+                            skipped.append(failed)   # not cached: try again next time
+                            continue
                         self.by_uid[key] = items
                     for item in self.by_uid[key]:
                         self.items[item["id"]] = item
@@ -204,7 +302,7 @@ class Mailbox:
                     m.logout()
                 except Exception:
                     pass
-            self.listing, self.listed_at = listing, time.time()
+            self.listing, self.skipped, self.listed_at = listing, skipped, time.time()
             return listing
 
     def get(self, aid):
@@ -295,7 +393,8 @@ def make_handler(cfg: Config, box: Mailbox, guard: Guard):
                 return
             try:
                 if path == "/api/attachments":
-                    return self.reply(200, {"mailbox": cfg.user, "days": cfg.days, "items": box.refresh()})
+                    items = box.refresh()
+                    return self.reply(200, {"mailbox": cfg.user, "days": cfg.days, "items": items, "skipped": box.skipped})
                 aid = path.rsplit("/", 1)[-1]
                 item = box.get(aid)
                 if not item:
@@ -323,7 +422,9 @@ def check(cfg: Config):
     for it in items:
         when = datetime.datetime.fromtimestamp(it["date"] / 1000).strftime("%Y-%m-%d %H:%M") if it["date"] else "?"
         print(f"  {when}  {it['name']}  ({it['size']} 字节)  {it['subject'][:40]}")
-    print(f"共找到 {len(items)} 个账单附件。")
+    print(f"共找到 {len(items)} 个账单文件。")
+    for sk in box.skipped:
+        print(f"  没取到：{sk['subject'][:40]} —— {sk['reason']}")
 
 
 def main():

@@ -15,7 +15,7 @@ function openImport() {
 $('#importBtn').addEventListener('click', openImport);
 $('#importRow').addEventListener('click', openImport);
 function addPending(file, extra) {
-  if (pending.some((p) => p.name === file.name && p.file.size === file.size && (!extra || p.mailId === extra.mailId))) return false;
+  if (pending.some((p) => p.file && p.name === file.name && p.file.size === file.size && (!extra || p.mailId === extra.mailId))) return false;
   pending.push(Object.assign({ name: file.name, file, pw: '', res: null, err: null, needPw: false }, extra || {}));
   return true;
 }
@@ -27,6 +27,10 @@ function renderPending() {
     if (p.note) d.append(el('div', 'src', p.note));
     if (p.res) for (const line of p.res.lines) d.append(el('div', 'ok', line));
     if (p.err) d.append(el('div', p.needPw && !/不对/.test(p.err) ? 'src' : 'err', p.err));
+    if (p.diag && p.diag.length) {
+      const det = el('details', 'diag'); det.append(el('summary', null, '查看识别到的文字（前 ' + p.diag.length + ' 行）'), el('pre', null, p.diag.join('\n')));
+      d.append(det);
+    }
     if (p.needPw) {
       const inp = el('input'); inp.type = 'text'; inp.value = p.pw; inp.placeholder = '这个文件的密码';
       inp.autocomplete = 'off'; inp.setAttribute('autocapitalize', 'off'); inp.spellcheck = false; inp.setAttribute('aria-label', p.name + ' 的密码');
@@ -35,7 +39,7 @@ function renderPending() {
     }
     fl.append(d);
   }
-  const todo = pending.filter((p) => !p.res).length;
+  const todo = pending.filter((p) => !p.res && p.file).length;
   $('#parseBtn').disabled = !todo;
   $('#parseBtn').textContent = pending.length && !todo ? '已全部解析' : '解析';
 }
@@ -46,12 +50,12 @@ $('#fileInput').addEventListener('change', () => {
 $('#parseBtn').addEventListener('click', async () => {
   const btn = $('#parseBtn'); btn.disabled = true; btn.textContent = ''; btn.append(el('span', 'spinner'), document.createTextNode('解析中'));
   for (const p of pending) {
-    if (p.res) continue;
+    if (p.res || !p.file) continue;
     try {
       const bytes = new Uint8Array(await p.file.arrayBuffer());
       p.res = { results: await parseBytes(bytes, p.name, p.pw.trim(), 0), lines: [] }; p.err = null; p.needPw = false;
     } catch (e) {
-      p.err = (e && e.message) || String(e); p.needPw = !!(e && e.code === 'pw');
+      p.err = (e && e.message) || String(e); p.needPw = !!(e && e.code === 'pw'); p.diag = e && e.lines ? e.lines : null;
     }
   }
   buildStaged(); renderPending();
@@ -145,12 +149,16 @@ $('#mailFetchBtn').addEventListener('click', async () => {
     const list = await mailApi(cfg, '/api/attachments');
     const seen = new Set(state.sample ? [] : state.mailSeen || []);
     const fresh = list.items.filter((a) => !seen.has(a.id) && !pending.some((p) => p.mailId === a.id));
+    for (const sk of list.skipped || []) {
+      if (pending.some((p) => p.skipKey === sk.subject + sk.date)) continue;
+      pending.push({ name: sk.subject || '账单邮件', file: null, pw: '', res: null, err: sk.reason, needPw: false, skipKey: sk.subject + sk.date, note: '来自邮箱 · ' + (sk.date ? fmtDT(sk.date) : '') });
+    }
     for (const a of fresh) {
       const blob = await mailApi(cfg, '/api/attachments/' + encodeURIComponent(a.id), 'blob');
       addPending(new File([blob], a.name), { mailId: a.id, note: '来自邮箱 · ' + (a.date ? fmtDT(a.date) : '') + (a.subject ? ' · ' + a.subject : '') });
     }
     renderPending();
-    toast(fresh.length ? `取回 ${fresh.length} 个新账单，点「解析」` : '邮箱里没有新的账单');
+    toast(fresh.length ? `取回 ${fresh.length} 个新账单，点「解析」` : (list.skipped || []).length ? '有账单邮件没能取到，看下面的原因' : '邮箱里没有新的账单');
   } catch (e) { toast(e.message); }
   btn.disabled = false; btn.textContent = '从邮箱获取';
 });

@@ -84,7 +84,9 @@ async function parsePdf(bytes, password) {
   await loadScript(LIBS.pdf);
   const lib = window.pdfjsLib; lib.GlobalWorkerOptions.workerSrc = LIBS.pdfWorker;
   let doc;
-  try { doc = await lib.getDocument({ data: bytes, password: password || undefined, isEvalSupported: false, disableFontFace: true }).promise; }
+  // Character maps let pdf.js read Chinese text in bank statements; the Claude page cannot fetch them, the website can.
+  const extra = IN_CLAUDE ? {} : { cMapUrl: LIBS.pdfCmaps, cMapPacked: true, standardFontDataUrl: LIBS.pdfFonts };
+  try { doc = await lib.getDocument(Object.assign({ data: bytes, password: password || undefined, isEvalSupported: false, disableFontFace: true }, extra)).promise; }
   catch (e) {
     if (e && e.name === 'PasswordException') throw pwError(password ? 'PDF 密码不对，请重新填写。' : '这个 PDF 有密码，填写后再点解析。');
     throw new Error('PDF 打不开：' + (e && e.message || e));
@@ -108,33 +110,42 @@ async function parsePdf(bytes, password) {
     }
   }
   const bank = (/中国银行|BANK OF CHINA/i.test(fullText) && '中国银行') || (fullText.match(/(\S{2,6}银行)/) || [])[1] || '银行卡';
-  const RE_DATE = /^(\d{4})[-\/.年]?(\d{2})[-\/.月]?(\d{2})日?(?=\s|$|\d{2}:)/;
-  const RE_MONEY = /(^|\s)(-?\d{1,3}(?:,\d{3})*\.\d{2}|-?\d+\.\d{2})(?=\s|$)/g;
+  // a record line holds a date (optionally after a row number), then amounts with two decimals
+  const RE_DATE_START = /^(?:\d{1,5}\s+)?(\d{4})(?:[-\/.年](\d{1,2})[-\/.月](\d{1,2})日?|(\d{2})(\d{2}))(?=\s|$|\d{1,2}:)/;
+  const RE_DATE_ANY = /(?:^|\s)(\d{4})[-\/.年](\d{1,2})[-\/.月](\d{1,2})日?(?=\s|$|\d{1,2}:)/;
+  const RE_MONEY = /(^|\s)([-+]?\d{1,3}(?:,\d{3})*\.\d{2}|[-+]?\d+\.\d{2})(?=\s|$)/g;
   const recs = []; let cur = null;
   for (const raw of lines) {
-    const line = raw.trim();
+    const line = raw.replace(/[¥￥]/g, '').trim();
     if (!line) continue;
     if (/第\s*\d+\s*页|共\s*\d+\s*页|^\d+\s*\/\s*\d+$/.test(line) || (/日期/.test(line) && /金额|余额/.test(line))) { cur = null; continue; }
-    const dm = RE_DATE.exec(line);
+    let dm = RE_DATE_START.exec(line); let before = '';
+    if (!dm) { dm = RE_DATE_ANY.exec(line); if (dm) before = line.slice(0, dm.index).trim(); }
     if (dm) {
-      let rest = line.slice(dm[0].length).trim();
+      const Y = +dm[1], M = +(dm[2] || dm[4]), D = +(dm[3] || dm[5]);
+      let rest = line.slice(dm.index + dm[0].length).trim();
       let hh = 0, mi = 0, ss = 0;
-      const tm = /^(\d{1,2}):(\d{2})(?::(\d{2}))?/.exec(rest);
-      if (tm) { hh = +tm[1]; mi = +tm[2]; ss = +(tm[3] || 0); rest = rest.slice(tm[0].length).trim(); }
+      const tm = /(?:^|\s)(\d{1,2}):(\d{2})(?::(\d{2}))?(?=\s|$)/.exec(rest);
+      if (tm) { hh = +tm[1]; mi = +tm[2]; ss = +(tm[3] || 0); rest = (rest.slice(0, tm.index) + ' ' + rest.slice(tm.index + tm[0].length)).trim(); }
+      if (before && !/^\d{1,5}$/.test(before)) rest = before + ' ' + rest;
       const money = []; let mm; RE_MONEY.lastIndex = 0;
       while ((mm = RE_MONEY.exec(rest))) money.push(mm[2]);
       if (!money.length) continue;
       const text = rest.replace(RE_MONEY, ' ').replace(/人民币|CNY|RMB|钞|汇/g, ' ').replace(/\s+/g, ' ').trim();
-      cur = { t: new Date(+dm[1], +dm[2] - 1, +dm[3], hh, mi, ss).getTime(), rawAmt: money[0], rawBal: money[1] != null ? money[1] : null, text, fx: RE_FX.test(rest) };
+      if (M < 1 || M > 12 || D < 1 || D > 31) continue;
+      cur = { t: new Date(Y, M - 1, D, hh, mi, ss).getTime(), rawAmt: money[0], rawBal: money[1] != null ? money[1] : null, text, fx: RE_FX.test(rest) };
       recs.push(cur);
     } else if (cur && !RE_MONEY.test(line)) {
       cur.text = (cur.text + ' ' + line).trim();
     }
     RE_MONEY.lastIndex = 0;
   }
-  if (!recs.length) throw new Error('没在 PDF 里找到交易明细。如果它是扫描件或格式特殊，把一页截图（打码）发给我来适配。');
+  if (!recs.length) {
+    const err = new Error(lines.length ? '没在 PDF 里认出交易明细。展开下面识别到的文字，截图（可先打码）发给我来适配。' : '这个 PDF 里没有可识别的文字，可能是扫描件。');
+    err.lines = lines.slice(0, 80); throw err;
+  }
   const num = (s) => Math.round(parseFloat(String(s).replace(/,/g, '')) * 100);
-  const signed = recs.some((r) => /^-/.test(r.rawAmt));
+  const signed = recs.some((r) => /^[-+]/.test(r.rawAmt));
   for (const r of recs) { r.amt = Math.abs(num(r.rawAmt)); r.bal = r.rawBal != null ? num(r.rawBal) : null; r.dir = signed ? (/^-/.test(r.rawAmt) ? -1 : 1) : 0; }
   if (!signed) {
     // infer direction from running balance, in whichever order the statement is sorted
