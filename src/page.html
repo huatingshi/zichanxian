@@ -59,6 +59,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, .filepick:focus
 .fine { margin: 20px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--ink-3); }
 .note { margin-top: 12px; padding: 12px 14px; border-radius: 12px; background: var(--fill); font-size: 13.5px; line-height: 1.6; color: var(--ink-2); }
 .note b { color: var(--ink); font-weight: 600; }
+.note a { color: var(--ink); font-weight: 600; }
 
 /* quote */
 .q-top { display: flex; justify-content: space-between; align-items: center; min-height: 36px; margin-top: 4px; }
@@ -86,6 +87,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, .filepick:focus
 #ranges[data-trend="down"] button[aria-selected="true"] { color: var(--down); background: var(--down-tint); }
 .ttabs.left { justify-content: flex-start; }
 .ttabs.left button { flex: none; padding: 0 12px; }
+#themeTabs button { padding: 0 10px; font-size: 13.5px; }
 
 .rule { height: 1px; background: var(--line); margin-top: 18px; }
 .sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
@@ -311,8 +313,9 @@ a.row { text-decoration: none; color: inherit; }
     </section>
 
     <section class="sec">
-      <div class="sec-h"><h2>数据</h2></div>
+      <div class="sec-h"><h2>设置</h2></div>
       <div class="rows">
+        <div class="row" id="themeRow"><span class="row-m"><span class="row-t">外观</span><span class="row-s" id="themeSub">跟随手机的浅色或深色设置</span></span><div class="ttabs left" id="themeTabs" role="tablist" aria-label="外观"><button type="button" role="tab" data-v="auto" aria-selected="true">自动</button><button type="button" role="tab" data-v="light" aria-selected="false">浅色</button><button type="button" role="tab" data-v="dark" aria-selected="false">深色</button></div></div>
         <a class="row link" id="guideRow" href="https://huatingshi.github.io/zichanxian/guide.html" target="_blank" rel="noopener"><span class="row-m"><span class="row-t">使用教程</span><span class="row-s">怎么导出账单、导入、看懂曲线</span></span><span class="chev" data-icon="chev"></span></a>
         <button class="row link" id="importRow" type="button"><span class="row-m"><span class="row-t">导入账单</span><span class="row-s">微信 .xlsx、支付宝 .csv、中国银行 .pdf 或 .zip</span></span><span class="chev" data-icon="chev"></span></button>
         <button class="row link" id="mailRow" type="button"><span class="row-m"><span class="row-t">邮箱同步</span><span class="row-s" id="mailRowSub">连接你服务器上的邮箱同步服务，一键取账单</span></span><span class="chev" data-icon="chev"></span></button>

@@ -22,7 +22,7 @@
 - `guide.html`：给使用者看的使用教程
 - `design/directions.html`：三个设计方向的样稿
 - `tests/fixtures/`：合成的测试账单（非真实数据）；`tests/mkfx.py`、`tests/mkwx.js` 是生成脚本
-- `tests/e2e.js`：端到端测试
+- `tests/e2e.js`：端到端测试；`tests/e2e-zoom.js`：曲线手势（双指缩放、平移、双击恢复）和外观设置
 
 ## 修改与发布
 

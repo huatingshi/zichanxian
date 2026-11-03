@@ -564,6 +564,30 @@ function applyTab() {
 }
 $('#tabbar').addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) setTab(b.dataset.tab); });
 
+/* ---------------- appearance ---------------- */
+const THEME_KEY = LS_KEY + ':theme';
+function getTheme() { try { const t = localStorage.getItem(THEME_KEY); return t === 'light' || t === 'dark' ? t : 'auto'; } catch (e) { return 'auto'; } }
+function applyTheme(t) {
+  const root = document.documentElement;
+  if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
+  const dark = t === 'dark' || (t === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+  const metas = document.querySelectorAll('meta[name="theme-color"]');
+  metas.forEach((m, i) => {
+    if (t === 'auto') { m.setAttribute('media', i === 0 ? '(prefers-color-scheme: light)' : '(prefers-color-scheme: dark)'); m.setAttribute('content', i === 0 ? '#FFFFFF' : '#000000'); }
+    else { m.removeAttribute('media'); m.setAttribute('content', dark ? '#000000' : '#FFFFFF'); }
+  });
+  for (const b of $('#themeTabs').children) b.setAttribute('aria-selected', String(b.dataset.v === t));
+  $('#themeSub').textContent = t === 'auto' ? '跟随手机的浅色或深色设置' : (t === 'dark' ? '一直用深色' : '一直用浅色') + '，顶部状态栏重新打开后生效';
+}
+// Inside Claude the viewer's own theme switch decides, so the setting only shows on the website.
+$('#themeRow').hidden = IN_CLAUDE;
+if (!IN_CLAUDE) applyTheme(getTheme());
+$('#themeTabs').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  try { if (b.dataset.v === 'auto') localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, b.dataset.v); } catch (er) {}
+  applyTheme(b.dataset.v);
+});
+
 function renderAll() {
   derive();
   applyTab();

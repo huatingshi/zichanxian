@@ -28,9 +28,19 @@ function rangeStart(now) {
   if (range === 'all') return Math.min(firstAll, now - DAY);
   return Math.max(now - map[range] * DAY, Math.min(firstAll, now - DAY));
 }
+/* Pinch on the chart locks a finer window inside the selected range; a double tap returns to the whole range. */
+const MIN_SPAN = 6 * 3600e3;
+let zoom = null; // { t0, t1 } or null
+function baseWindow(now) { return [rangeStart(now), now]; }
 function buildView() {
   const now = Date.now();
-  const t0 = rangeStart(now); const t1 = now;
+  const [b0, b1] = baseWindow(now);
+  let t0 = b0, t1 = b1;
+  if (zoom) {
+    const span = Math.min(b1 - b0, Math.max(MIN_SPAN, zoom.t1 - zoom.t0));
+    t0 = Math.min(Math.max(zoom.t0, b0), b1 - span); t1 = t0 + span;
+    if (span >= b1 - b0 - 1000) { zoom = null; t0 = b0; t1 = b1; }
+  }
   const ev = [];
   for (const r of derived.eff) if (r.x.t > t0 && r.x.t <= t1) ev.push({ t: r.x.t, rec: r });
   for (const a of derived.anchorRecs) if (a.anchor.t > t0 && a.anchor.t <= t1) ev.push({ t: a.anchor.t, anc: a });
@@ -42,11 +52,17 @@ function buildView() {
     if (e.rec) { cnt++; if (e.rec.delta > 0) inc += e.rec.delta; else out += e.rec.delta; }
     else if (e.anc && e.anc.before != null) adj += e.anc.anchor.v - e.anc.before;
   }
-  view = { t0, t1, v0, vEnd: derived.bal(t1), pts, inc, out, cnt, adj };
+  view = { t0, t1, b0, b1, zoomed: !!zoom, v0, vEnd: derived.bal(t1), pts, inc, out, cnt, adj };
   return view;
 }
 function cls(d) { return d > 0 ? 'up' : d < 0 ? 'down' : 'flat'; }
 const RANGE_LABEL = { '1w': '近 1 周', '1m': '近 1 月', '3m': '近 3 月', '1y': '近 1 年', 'all': '全部' };
+function fmtSpan(t0, t1) {
+  const a = new Date(t0), b = new Date(t1);
+  if (t1 - t0 < 2 * DAY) return dayKey(t0) === dayKey(t1) ? `${fmtDateAuto(t0)} ${fmtTime(t0)}–${fmtTime(t1)}` : `${fmtDateAuto(t0)} ${fmtTime(t0)} – ${fmtDate(t1)} ${fmtTime(t1)}`;
+  if (a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth()) return `${fmtDateAuto(t0)} – ${b.getDate()}日`;
+  return `${fmtDateAuto(t0)} – ${fmtDateAuto(t1)}`;
+}
 function renderQuote() {
   const v = hover ? hover.v : view.vEnd;
   bigMoney($('#qValue'), v);
@@ -54,7 +70,7 @@ function renderQuote() {
   const pct = view.v0 !== 0 ? (d / Math.abs(view.v0)) * 100 : 0;
   const ch = $('#qChange'); ch.textContent = '';
   const sign = d > 0 ? '+' : d < 0 ? '−' : '';
-  ch.append(el('span', cls(d), `${sign}¥${fmtMoney(Math.abs(d))}（${sign}${Math.abs(pct).toFixed(2)}%）`), el('span', 'span', hover ? '较 ' + fmtDate(view.t0) : RANGE_LABEL[range]));
+  ch.append(el('span', cls(d), `${sign}¥${fmtMoney(Math.abs(d))}（${sign}${Math.abs(pct).toFixed(2)}%）`), el('span', 'span', hover ? '较 ' + fmtDate(view.t0) : view.zoomed ? fmtSpan(view.t0, view.t1) : RANGE_LABEL[range]));
   const sc = $('#qScrub'); const lbl = $('#qLabel');
   lbl.classList.toggle('sample', !!state.sample && !hover);
   if (hover) {
@@ -64,8 +80,9 @@ function renderQuote() {
     else sc.textContent = '这一刻没有交易';
     sc.classList.add('on');
   } else {
-    lbl.textContent = '总资产';
-    sc.textContent = derived.anchors.length ? '校准于 ' + fmtDT(derived.anchors[derived.anchors.length - 1].t) : '还没填写总资产，显示的是累计收支';
+    lbl.textContent = view.zoomed && view.t1 < Date.now() - 3600e3 ? fmtDate(view.t1) + '的总资产' : '总资产';
+    sc.textContent = view.zoomed ? '双击图表回到' + RANGE_LABEL[range]
+      : derived.anchors.length ? '校准于 ' + fmtDT(derived.anchors[derived.anchors.length - 1].t) : '还没填写总资产，显示的是累计收支';
     sc.classList.remove('on');
   }
 }
@@ -92,7 +109,7 @@ function drawChart() {
   const W = rect.width, H = rect.height;
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, W, H);
-  const padT = 14, padB = 14, padL = 0, padR = 14;
+  const padT = 14, padB = view.zoomed ? 26 : 14, padL = 0, padR = 14;
   const { t0, t1, v0, pts } = view;
   let vmin = v0, vmax = v0; for (const p of pts) { if (p.v < vmin) vmin = p.v; if (p.v > vmax) vmax = p.v; }
   if (vmax === vmin) { vmax += 100; vmin -= 100; }
@@ -123,7 +140,14 @@ function drawChart() {
     ctx.fillStyle = hexA(col, 0.18); ctx.beginPath(); ctx.arc(ex, ey, 9, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = col; ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI * 2); ctx.fill();
   }
-  cv.setAttribute('aria-label', `总资产走势，${fmtDate(t0)}到现在，从 ${fmtMoney(v0)} 元到 ${fmtMoney(view.vEnd)} 元，变动 ${fmtMoney(view.vEnd - v0, { sign: true })} 元`);
+  if (view.zoomed) {
+    // the locked window's ends, so a zoomed chart always says which days it shows
+    ctx.fillStyle = tok('--ink-3'); ctx.font = '11px ' + getComputedStyle(document.body).fontFamily; ctx.textBaseline = 'bottom';
+    const lab = (t) => (t1 - t0 < 2 * DAY ? fmtDate(t) + ' ' + fmtTime(t) : fmtDateAuto(t));
+    ctx.textAlign = 'left'; ctx.fillText(lab(t0), 16, H - 4);
+    ctx.textAlign = 'right'; ctx.fillText(t1 >= Date.now() - 60e3 ? '现在' : lab(t1), W - 16, H - 4);
+  }
+  cv.setAttribute('aria-label', `总资产走势，${fmtDate(t0)}到${view.zoomed ? fmtDate(t1) : '现在'}，从 ${fmtMoney(v0)} 元到 ${fmtMoney(view.vEnd)} 元，变动 ${fmtMoney(view.vEnd - v0, { sign: true })} 元`);
 }
 function hoverAt(clientX) {
   if (!geo || !view) return;
@@ -139,10 +163,72 @@ function hoverAt(clientX) {
   renderQuote(); drawChart();
 }
 function clearHover() { if (!hover) return; hover = null; renderQuote(); drawChart(); }
-let dragging = false;
-cv.addEventListener('pointerdown', (e) => { dragging = true; hoverAt(e.clientX); });
-cv.addEventListener('pointermove', (e) => { if (dragging || e.pointerType === 'mouse') hoverAt(e.clientX); });
-['pointerup', 'pointercancel', 'pointerleave'].forEach((n) => cv.addEventListener(n, () => { dragging = false; clearHover(); }));
+/* gestures: one finger scrubs, two fingers pinch / pan the window, double tap resets */
+let dragging = false, pinch = null, tapStart = null, lastTap = 0;
+const ptrs = new Map();
+function timeAtX(px) { const { t0, t1 } = view; return t0 + (px - geo.padL) / (geo.W - geo.padL - geo.padR) * (t1 - t0); }
+function setWindow(t0, span) {
+  const [b0, b1] = baseWindow(Date.now());
+  span = Math.min(b1 - b0, Math.max(MIN_SPAN, span));
+  t0 = Math.min(Math.max(t0, b0), b1 - span);
+  zoom = span >= b1 - b0 - 1000 ? null : { t0, t1: t0 + span };
+  buildView(); renderQuote(); drawChart();
+}
+let commitTimer = null;
+function commitWindow() { clearTimeout(commitTimer); commitTimer = setTimeout(() => { listLimit = DAYS_FIRST; renderStats(); renderList(); }, 120); }
+function resetZoom() { if (!zoom) return; zoom = null; hover = null; buildView(); renderQuote(); drawChart(); commitWindow(); }
+function pinchState() {
+  const rect = cv.getBoundingClientRect(); const xs = Array.from(ptrs.values());
+  return { d: Math.max(24, Math.abs(xs[0] - xs[1])), mid: (xs[0] + xs[1]) / 2 - rect.left };
+}
+cv.addEventListener('pointerdown', (e) => {
+  try { cv.setPointerCapture(e.pointerId); } catch (er) {}
+  ptrs.set(e.pointerId, e.clientX);
+  if (ptrs.size === 2 && geo) {
+    const st = pinchState(); dragging = false; tapStart = null; hover = null;
+    pinch = { d0: st.d, span0: view.t1 - view.t0, ta: timeAtX(st.mid) };
+    renderQuote(); drawChart(); return;
+  }
+  if (ptrs.size === 1) { dragging = true; tapStart = { x: e.clientX, t: performance.now() }; hoverAt(e.clientX); }
+});
+cv.addEventListener('pointermove', (e) => {
+  if (!ptrs.has(e.pointerId)) { if (e.pointerType === 'mouse') hoverAt(e.clientX); return; }
+  ptrs.set(e.pointerId, e.clientX);
+  if (pinch && ptrs.size >= 2) {
+    const st = pinchState(); const span = pinch.span0 * pinch.d0 / st.d;
+    const frac = (st.mid - geo.padL) / (geo.W - geo.padL - geo.padR);
+    setWindow(pinch.ta - frac * Math.min(span, baseWindow(Date.now())[1] - baseWindow(Date.now())[0]), span);
+    return;
+  }
+  if (dragging) hoverAt(e.clientX);
+});
+function endPointer(e) {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.delete(e.pointerId);
+  if (pinch) { if (ptrs.size < 2) { pinch = null; commitWindow(); } return; }
+  if (ptrs.size) return;
+  dragging = false; clearHover();
+  if (e.type === 'pointerup' && tapStart && Math.abs(e.clientX - tapStart.x) < 12 && performance.now() - tapStart.t < 300) {
+    const now = performance.now();
+    if (now - lastTap < 350) { lastTap = 0; resetZoom(); } else lastTap = now;
+  }
+  tapStart = null;
+}
+cv.addEventListener('pointerup', endPointer);
+cv.addEventListener('pointercancel', endPointer);
+cv.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && !ptrs.size) clearHover(); });
+cv.addEventListener('dblclick', resetZoom);
+// trackpad pinch on a computer arrives as ctrl + wheel
+cv.addEventListener('wheel', (e) => {
+  if (!e.ctrlKey || !geo) return;
+  e.preventDefault();
+  const px = e.clientX - cv.getBoundingClientRect().left; const ta = timeAtX(px);
+  const span = (view.t1 - view.t0) * Math.exp(e.deltaY * 0.01);
+  const frac = (px - geo.padL) / (geo.W - geo.padL - geo.padR);
+  setWindow(ta - frac * span, span); commitWindow();
+}, { passive: false });
+// keep iOS from zooming the whole page when two fingers land on the chart
+cv.addEventListener('gesturestart', (e) => e.preventDefault());
 
 /* ledger rows (shared by 走势 and 分类) */
 function makeRow(it) {
@@ -237,7 +323,7 @@ $('#filters').addEventListener('click', (e) => {
   renderList();
 });
 $('#ranges').addEventListener('click', (e) => {
-  const b = e.target.closest('button'); if (!b) return; range = b.dataset.r; listLimit = DAYS_FIRST;
+  const b = e.target.closest('button'); if (!b) return; range = b.dataset.r; listLimit = DAYS_FIRST; zoom = null;
   try { localStorage.setItem(LS_KEY + ':range', range); } catch (er) {}
   renderTrend();
 });

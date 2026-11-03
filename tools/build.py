@@ -31,10 +31,10 @@ HEAD = f"""<!doctype html>
 <meta name="description" content="导入微信、支付宝、中国银行账单，画出像股价一样涨跌的总资产曲线。数据只存在本机。">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="thread">
 <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+{{EARLY}}
 <link rel="apple-touch-icon" href="icons/icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -49,6 +49,20 @@ body::before {{ content: ""; position: fixed; inset: 0 0 auto; height: env(safe-
 </head>
 <body>
 """
+
+# Runs before the page paints: applies the saved look (自动 / 浅色 / 深色) so there is no flash, and picks the
+# status bar style iOS reads when the home-screen app opens (white text over dark, dark text over light).
+EARLY = """<script>
+(function () {
+  var t = null; try { t = localStorage.getItem('zichanxian.v1:theme'); } catch (e) {}
+  var forced = t === 'light' || t === 'dark';
+  if (forced) document.documentElement.setAttribute('data-theme', t);
+  var dark = forced ? t === 'dark' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
+  var m = document.createElement('meta'); m.name = 'apple-mobile-web-app-status-bar-style'; m.content = dark ? 'black-translucent' : 'default';
+  document.head.appendChild(m);
+})();
+</script>"""
+HEAD = HEAD.replace("{EARLY}", EARLY)
 
 (ROOT / "index.html").write_text(HEAD + content + "\n</body>\n</html>\n", encoding="utf-8")
 print("built build/artifact.html and index.html")
