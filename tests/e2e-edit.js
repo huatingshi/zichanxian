@@ -16,17 +16,17 @@ let failed = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m);
 
   // categories: step back month by month (sample data covers ~5 months)
   await p.click('#tabbar [data-tab="cats"]');
-  ok(await p.textContent('#dcK') === '本月支出' && await p.isDisabled('#catNext'), 'starts on this month, cannot go into the future');
+  ok(await p.textContent('#dcK') === '本月支出' && await p.isDisabled('#catPrev'), 'starts on this month, cannot go into the future');
   const totals = [];
-  for (let i = 0; i < 3; i++) { await p.click('#catPrev'); totals.push([await p.textContent('#catNow'), await p.textContent('#dcK'), await p.textContent('#dcV')]); }
+  for (let i = 0; i < 3; i++) { await p.click('#catNext'); totals.push([await p.textContent('#catNow'), await p.textContent('#dcK'), await p.textContent('#dcV')]); }
   ok(totals[0][1] === '上月支出' && /月支出$/.test(totals[2][1]) && totals[2][1] !== '上月支出', 'stepping back: ' + totals.map((t) => t.join(' ')).join(' | '));
   ok(new Set(totals.map((t) => t[2])).size === 3, 'each month has its own total');
   await p.click('#catNow'); ok(await p.textContent('#dcK') === '本月支出', 'tapping the month label returns to this month');
   await p.click('#catRanges [data-r="year"]'); ok(await p.textContent('#dcK') === '今年支出', 'by year');
   await p.click('#catRanges [data-r="all"]'); ok(await p.isHidden('#catStep'), 'everything hides the stepper');
   await p.click('#catRanges [data-r="month"]');
-  for (let i = 0; i < 12; i++) if (!(await p.isDisabled('#catPrev'))) await p.click('#catPrev');
-  ok(await p.isDisabled('#catPrev'), 'cannot step before the first record');
+  for (let i = 0; i < 12; i++) if (!(await p.isDisabled('#catNext'))) await p.click('#catNext');
+  ok(await p.isDisabled('#catNext'), 'cannot step before the first record');
 
   // rename every transaction with the same bill name (works on the sample data in memory)
   await p.click('#tabbar [data-tab="trend"]');

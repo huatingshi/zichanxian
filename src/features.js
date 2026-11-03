@@ -236,8 +236,8 @@ function renderCats() {
   if (catRange !== 'all') {
     const d = new Date(catPeriod()[0]);
     $('#catNow').textContent = catRange === 'year' ? d.getFullYear() + '年' : d.getFullYear() + '年' + (d.getMonth() + 1) + '月';
-    $('#catNext').disabled = catOff >= 0;
-    $('#catPrev').disabled = catPeriod(catOff - 1)[1] <= catEarliest();
+    $('#catPrev').disabled = catOff >= 0;
+    $('#catNext').disabled = catPeriod(catOff - 1)[1] <= catEarliest();
   }
   for (const x of $('#catKind').children) x.setAttribute('aria-selected', String(x.dataset.k === catKind));
   const [a, b] = catPeriod(); const inc = catKind === 'in';
@@ -306,8 +306,9 @@ function renderCats() {
 $('#catMoreBtn').addEventListener('click', () => { catLimit += DAYS_MORE; renderCats(); });
 $('#catLessBtn').addEventListener('click', () => { catLimit = DAYS_FIRST; renderCats(); $('#catTxBox').scrollIntoView({ block: 'start' }); });
 $('#catRanges').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; catRange = b.dataset.r; catOff = 0; selCat = null; renderCats(); });
-$('#catPrev').addEventListener('click', () => stepCat(-1));
-$('#catNext').addEventListener('click', () => stepCat(1));
+// right arrow = an earlier month or year, left arrow = back toward now
+$('#catPrev').addEventListener('click', () => stepCat(1));
+$('#catNext').addEventListener('click', () => stepCat(-1));
 $('#catNow').addEventListener('click', () => { if (catOff) { catOff = 0; selCat = null; renderCats(); } });
 // swipe left / right on the ring to step through months or years
 (() => {
@@ -316,7 +317,7 @@ $('#catNow').addEventListener('click', () => { if (catOff) { catOff = 0; selCat 
   box.addEventListener('pointerdown', (e) => { sx = e.clientX; sy = e.clientY; });
   box.addEventListener('pointerup', (e) => {
     if (sx == null) return; const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
-    if (Math.abs(dx) > 50 && Math.abs(dy) < 40) { box.dataset.swiped = '1'; stepCat(dx < 0 ? 1 : -1); setTimeout(() => { delete box.dataset.swiped; }, 50); }
+    if (Math.abs(dx) > 50 && Math.abs(dy) < 40) { box.dataset.swiped = '1'; stepCat(dx < 0 ? -1 : 1); setTimeout(() => { delete box.dataset.swiped; }, 50); }
   });
   box.addEventListener('click', (e) => { if (box.dataset.swiped) { e.stopPropagation(); e.preventDefault(); } }, true);
 })();
