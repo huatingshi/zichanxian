@@ -1,0 +1,337 @@
+<title>资产线界面方向</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a short review note on top, then three phone mockups side by side (stacked on a phone), each labelled with its rules. */
+:root {
+  --bg: #ECEDEF;
+  --fg: #141619;
+  --muted: #5F6672;
+  --faint: #8C929C;
+  --line: rgba(20, 22, 25, 0.10);
+  --panel: #FFFFFF;
+  --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0E0F11; --fg: #ECEEF1; --muted: #A5ABB5; --faint: #737A85; --line: rgba(255,255,255,0.09); --panel: #17191C; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0E0F11; --fg: #ECEEF1; --muted: #A5ABB5; --faint: #737A85; --line: rgba(255,255,255,0.09); --panel: #17191C; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font); -webkit-font-smoothing: antialiased; }
+.page { max-width: 1240px; margin: 0 auto; padding-block: 28px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 28px; }
+h1 { font-size: 26px; margin: 0; letter-spacing: 0.01em; text-wrap: balance; }
+.lead { margin: 0; max-width: 62ch; color: var(--muted); font-size: 15px; line-height: 1.7; }
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.note { background: var(--panel); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.note h2 { font-size: 15px; margin: 0; }
+.note ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+.note li b { color: var(--fg); font-weight: 600; }
+.note .src { font-size: 12px; color: var(--faint); line-height: 1.6; }
+.note .src a { color: var(--muted); }
+.dirs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px 24px; align-items: start; }
+.dir { display: flex; flex-direction: column; gap: 14px; min-width: 0; align-items: center; }
+.dir-h { width: 100%; max-width: 375px; display: flex; flex-direction: column; gap: 6px; }
+.dir-h .k { font-size: 13px; color: var(--faint); letter-spacing: 0.08em; }
+.dir-h h3 { margin: 0; font-size: 19px; }
+.dir-h p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+.foot { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 62ch; margin: 0; }
+
+/* ---- phone frame ---- */
+.phone { width: 100%; max-width: 375px; height: 780px; border-radius: 44px; overflow: hidden; position: relative; box-shadow: 0 0 0 1px rgba(0,0,0,0.10), 0 24px 60px -24px rgba(0,0,0,0.35); }
+.scr { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; }
+.sb { height: 46px; flex: none; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 30px 6px; font-size: 15px; font-weight: 600; }
+.sb i { width: 64px; height: 12px; border-radius: 3px; display: block; opacity: 0.9; background: linear-gradient(90deg, currentColor 0 14px, transparent 14px 20px, currentColor 20px 34px, transparent 34px 40px, currentColor 40px 64px); -webkit-mask: none; }
+.body { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.body > * { flex: none; }
+.tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 82px; display: grid; grid-template-columns: repeat(4, 1fr); padding: 7px 8px 0; }
+.tabs span { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; }
+.tabs svg { width: 25px; height: 25px; }
+.fab { position: absolute; right: 18px; bottom: 98px; width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; }
+.fab svg { width: 22px; height: 22px; }
+.chart { display: block; width: 100%; }
+.n { font-variant-numeric: tabular-nums; }
+
+/* ===== A 纯净行情 ===== */
+.A { background: #FFFFFF; color: #0B0C0E; }
+.A .pad { padding: 0 20px; }
+.A .lbl { font-size: 15px; color: #6E737B; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+.A .lbl svg { width: 22px; height: 22px; color: #0B0C0E; }
+.A .big { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; margin-top: 6px; }
+.A .big small { font-size: 26px; font-weight: 600; margin-right: 2px; }
+.A .chg { font-size: 15px; color: #E5372E; margin-top: 6px; font-weight: 500; }
+.A .chg span { color: #8E939B; font-weight: 400; margin-left: 6px; }
+.A .chart { margin-top: 18px; height: 180px; }
+.A .rng { display: flex; justify-content: space-between; padding: 14px 20px 0; }
+.A .rng b { font-size: 14px; font-weight: 600; color: #6E737B; padding: 6px 12px; border-radius: 8px; }
+.A .rng b.on { color: #E5372E; background: rgba(229, 55, 46, 0.09); }
+.A .rule { height: 1px; background: #EEEFF1; margin: 18px 20px 0; }
+.A .sum { display: grid; grid-template-columns: 1fr 1fr; padding: 16px 20px 0; }
+.A .sum div { display: flex; flex-direction: column; gap: 4px; }
+.A .sum .k { font-size: 13px; color: #8E939B; }
+.A .sum .v { font-size: 17px; font-weight: 600; }
+.A h4 { font-size: 22px; margin: 26px 20px 4px; font-weight: 700; }
+.A .cap { font-size: 13px; color: #8E939B; padding: 14px 20px 2px; }
+.A .row { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; gap: 12px; }
+.A .row + .row { box-shadow: inset 0 1px 0 #F0F1F3; }
+.A .row .t { font-size: 16px; }
+.A .row .s { font-size: 13px; color: #8E939B; margin-top: 3px; }
+.A .row .a { font-size: 16px; font-weight: 500; }
+.A .row .a.in { color: #E5372E; }
+.A .tabs { background: rgba(255,255,255,0.94); box-shadow: inset 0 1px 0 #EEEFF1; color: #A0A5AC; }
+.A .tabs .on { color: #0B0C0E; font-weight: 600; }
+.A .fab { background: #0B0C0E; color: #fff; box-shadow: 0 8px 20px -6px rgba(0,0,0,0.4); }
+
+/* ===== B 浅灰分组 ===== */
+.B { background: #F2F2F6; color: #111216; }
+.B .pad { padding: 0 16px; }
+.B .ttl { font-size: 32px; font-weight: 700; margin: 6px 16px 0; letter-spacing: 0.01em; }
+.B .hero { margin: 14px 16px 0; background: #FFFFFF; border-radius: 16px; padding: 16px 16px 12px; }
+.B .lbl { font-size: 13px; color: #85858C; }
+.B .big { font-size: 34px; font-weight: 600; letter-spacing: -0.015em; margin-top: 4px; }
+.B .big small { font-size: 22px; margin-right: 2px; }
+.B .chg { font-size: 14px; color: #E5372E; margin-top: 4px; font-weight: 500; }
+.B .chg span { color: #85858C; font-weight: 400; margin-left: 6px; }
+.B .chart { margin: 12px -16px 0; width: calc(100% + 32px); height: 130px; }
+.B .seg { display: grid; grid-template-columns: repeat(5, 1fr); background: #EEEEF2; border-radius: 9px; padding: 2px; margin-top: 10px; }
+.B .seg b { text-align: center; font-size: 13px; font-weight: 500; padding: 6px 0; border-radius: 7px; color: #3C3C43; }
+.B .seg b.on { background: #fff; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+.B .grp { margin: 12px 16px 0; background: #FFFFFF; border-radius: 16px; overflow: hidden; }
+.B .stats { display: grid; grid-template-columns: 1fr 1fr; }
+.B .stats div { padding: 12px 16px; display: flex; flex-direction: column; gap: 3px; }
+.B .stats div + div { box-shadow: inset 1px 0 0 #ECECF0; }
+.B .stats .k { font-size: 12.5px; color: #85858C; }
+.B .stats .v { font-size: 17px; font-weight: 600; }
+.B .cap { font-size: 13px; color: #85858C; padding: 18px 32px 6px; }
+.B .row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 16px; }
+.B .row + .row { box-shadow: inset 38px 0 0 #fff, inset 0 1px 0 #ECECF0; }
+.B .row i { width: 10px; height: 10px; border-radius: 50%; }
+.B .row .t { font-size: 15.5px; }
+.B .row .s { font-size: 12.5px; color: #8E8E95; margin-top: 2px; }
+.B .row .a { font-size: 15.5px; font-weight: 500; }
+.B .row .a.in { color: #E5372E; }
+.B .rem { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; font-size: 14.5px; }
+.B .rem em { font-style: normal; font-size: 12.5px; color: #A2600B; background: rgba(240, 160, 40, 0.16); padding: 3px 8px; border-radius: 6px; }
+.B .tabs { background: rgba(249,249,251,0.94); box-shadow: inset 0 1px 0 #E3E3E8; color: #9B9BA2; }
+.B .tabs .on { color: #111216; font-weight: 600; }
+.B .fab { background: #111216; color: #fff; box-shadow: 0 8px 20px -6px rgba(0,0,0,0.35); }
+
+/* ===== C 深灰夜间 ===== */
+.C { background: #141518; color: #F1F2F4; }
+.C .lbl { font-size: 14px; color: #8C8F97; margin: 12px 20px 0; display: flex; justify-content: space-between; }
+.C .lbl span:last-child { font-size: 12.5px; color: #6D7078; }
+.C .big { font-size: 42px; font-weight: 600; letter-spacing: -0.02em; margin: 6px 20px 0; }
+.C .big small { font-size: 26px; margin-right: 2px; color: #B4B7BE; }
+.C .chg { margin: 8px 20px 0; display: flex; gap: 8px; align-items: center; font-size: 14px; font-weight: 500; }
+.C .chg em { font-style: normal; color: #FF6259; background: rgba(255, 98, 89, 0.14); padding: 3px 9px; border-radius: 999px; }
+.C .chg span { color: #6D7078; font-weight: 400; }
+.C .chart { margin-top: 16px; height: 170px; }
+.C .seg { display: grid; grid-template-columns: repeat(5, 1fr); margin: 10px 20px 0; background: #1E2024; border-radius: 10px; padding: 3px; }
+.C .seg b { text-align: center; font-size: 13px; font-weight: 500; padding: 6px 0; border-radius: 8px; color: #8C8F97; }
+.C .seg b.on { background: #2E3036; color: #F1F2F4; }
+.C .grp { margin: 14px 16px 0; background: #1C1E22; border-radius: 18px; overflow: hidden; }
+.C .stats { display: grid; grid-template-columns: 1fr 1fr; }
+.C .stats div { padding: 13px 16px; display: flex; flex-direction: column; gap: 4px; }
+.C .stats div + div { box-shadow: inset 1px 0 0 #2A2C31; }
+.C .stats .k { font-size: 12.5px; color: #8C8F97; }
+.C .stats .v { font-size: 17px; font-weight: 600; }
+.C .cap { font-size: 13px; color: #6D7078; padding: 18px 32px 6px; display: flex; justify-content: space-between; }
+.C .row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 16px; }
+.C .row + .row { box-shadow: inset 62px 0 0 #1C1E22, inset 0 1px 0 #2A2C31; }
+.C .row i { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #26282D; }
+.C .row i svg { width: 17px; height: 17px; }
+.C .row .t { font-size: 15.5px; }
+.C .row .s { font-size: 12.5px; color: #7D8088; margin-top: 2px; }
+.C .row .a { font-size: 15.5px; font-weight: 500; }
+.C .row .a.in { color: #FF6259; }
+.C .tabs { background: rgba(20,21,24,0.94); box-shadow: inset 0 1px 0 #24262B; color: #6D7078; }
+.C .tabs .on { color: #F1F2F4; font-weight: 600; }
+.C .fab { background: #F1F2F4; color: #141518; }
+</style>
+
+<div class="page">
+  <header style="display:flex;flex-direction:column;gap:10px">
+    <h1>资产线：换个方向重新设计</h1>
+    <p class="lead">上一版的问题我对照设计资料找了一遍。下面是三个方向的首页样稿，用的是示例数据。选一个，或者说说想怎么混搭，我再按它把四个页面完整做出来。</p>
+  </header>
+
+  <section class="notes">
+    <div class="note">
+      <h2>上一版为什么不好看</h2>
+      <ul>
+        <li><b>焦点太多。</b>深色大卡片、每行的彩色图标块、黑色按钮、黑色悬浮按钮都在抢眼球，一屏应该只有一个主角。</li>
+        <li><b>颜色太花。</b>每条明细都配一个彩色方块和汉字，像占位头像，显得廉价。</li>
+        <li><b>卡片和阴影用太多。</b>几乎所有东西都装进带阴影的卡片，还有卡片套卡片，层级反而平了。</li>
+        <li><b>装饰多于内容。</b>渐变、光斑、上标的 ¥ 符号、额外的网络字体，都是加法。</li>
+      </ul>
+    </div>
+    <div class="note">
+      <h2>这次遵循的原则</h2>
+      <ul>
+        <li><b>先用黑白灰把层级做对，最后才加颜色。</b>红绿只留给涨跌和收入。</li>
+        <li><b>靠字重和灰度区分主次</b>，而不是不断加大字号：主要信息深色，次要信息灰色，辅助信息浅灰。</li>
+        <li><b>少用边框和阴影</b>，用留白和浅灰底色来分组。</li>
+        <li><b>余额最大最显眼</b>，促销式的装饰让位给核心信息；只用系统字体（苹方 / SF）。</li>
+      </ul>
+      <div class="src">参考：<a href="https://tianpan.co/blog/260-simple-ui-design-part-1" target="_blank" rel="noopener">极简 UI 教程</a>、<a href="https://www.woshipm.com/pd/4339133.html" target="_blank" rel="noopener">人人都是产品经理：UI 层级</a>、<a href="https://openskillindex.com/skills/comeonoliver-skillshub-refactoring-ui" target="_blank" rel="noopener">Refactoring UI 要点</a>、<a href="https://lollypop.design/blog/2026/june/banking-app-ui-design/" target="_blank" rel="noopener">银行 App 界面设计</a>、<a href="https://developer.apple.com/design/human-interface-guidelines.md" target="_blank" rel="noopener">Apple 人机界面指南</a></div>
+    </div>
+  </section>
+
+  <section class="dirs">
+    <!-- A -->
+    <div class="dir">
+      <div class="dir-h">
+        <span class="k">方向 A</span>
+        <h3>纯净行情</h3>
+        <p>像股票 App：白底，不用卡片，曲线铺满整个宽度。明细只有文字和细线，支出用黑字，只有收入用红色。最安静、最像“看盘”。</p>
+      </div>
+      <div class="phone"><div class="scr A">
+        <div class="sb"><span>9:41</span><i></i></div>
+        <div class="body">
+          <div class="pad">
+            <div class="lbl"><span>总资产</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v10m0 0-4-4m4 4 4-4M5 15v4h14v-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="big n"><small>¥</small>86,420.35</div>
+            <div class="chg n">+¥9,042.17（+11.69%）<span>近 1 月</span></div>
+          </div>
+          <svg class="chart" data-style="A" viewBox="0 0 375 180" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="rng"><b>1周</b><b class="on">1月</b><b>3月</b><b>1年</b><b>全部</b></div>
+          <div class="rule"></div>
+          <div class="sum">
+            <div><span class="k">收入</span><span class="v n">18,795.00</span></div>
+            <div><span class="k">支出</span><span class="v n">5,251.40</span></div>
+          </div>
+          <h4>明细</h4>
+          <div class="cap">11月2日 周一</div>
+          <div class="list" data-list="A"></div>
+        </div>
+        <div class="fab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+        <div class="tabs" data-tabs></div>
+      </div></div>
+    </div>
+
+    <!-- B -->
+    <div class="dir">
+      <div class="dir-h">
+        <span class="k">方向 B</span>
+        <h3>浅灰分组</h3>
+        <p>像 iPhone 的「设置」和「钱包」：浅灰底，白色圆角分组，没有阴影。分类用一个小色点表示。和第 2 版最接近，但更整齐、更克制。</p>
+      </div>
+      <div class="phone"><div class="scr B">
+        <div class="sb"><span>9:41</span><i></i></div>
+        <div class="body">
+          <div class="ttl">资产线</div>
+          <div class="hero">
+            <div class="lbl">总资产（元）</div>
+            <div class="big n"><small>¥</small>86,420.35</div>
+            <div class="chg n">+9,042.17　+11.69%<span>近 1 月</span></div>
+            <svg class="chart" data-style="B" viewBox="0 0 375 130" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <div class="seg"><b>1周</b><b class="on">1月</b><b>3月</b><b>1年</b><b>全部</b></div>
+          </div>
+          <div class="grp"><div class="rem"><span>花呗 11月10日还款 · ¥1,240.00</span><em>还有 7 天</em></div></div>
+          <div class="grp"><div class="stats">
+            <div><span class="k">收入</span><span class="v n" style="color:#E5372E">+18,795.00</span></div>
+            <div><span class="k">支出</span><span class="v n">−5,251.40</span></div>
+          </div></div>
+          <div class="cap">11月2日 周一</div>
+          <div class="grp list" data-list="B"></div>
+        </div>
+        <div class="fab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+        <div class="tabs" data-tabs></div>
+      </div></div>
+    </div>
+
+    <!-- C -->
+    <div class="dir">
+      <div class="dir-h">
+        <span class="k">方向 C</span>
+        <h3>深灰夜间</h3>
+        <p>深灰底而不是纯黑，像 MOZE 的深色主题。曲线带一层柔和的渐变，分类用统一的线性小图标，不再用彩色块。只做深色一种外观。</p>
+      </div>
+      <div class="phone"><div class="scr C">
+        <div class="sb"><span>9:41</span><i></i></div>
+        <div class="body">
+          <div class="lbl"><span>总资产（元）</span><span>校准于 11月3日</span></div>
+          <div class="big n"><small>¥</small>86,420.35</div>
+          <div class="chg n"><em>+9,042.17</em>+11.69%<span>近 1 月</span></div>
+          <svg class="chart" data-style="C" viewBox="0 0 375 170" preserveAspectRatio="none" aria-hidden="true"></svg>
+          <div class="seg"><b>1周</b><b class="on">1月</b><b>3月</b><b>1年</b><b>全部</b></div>
+          <div class="grp"><div class="stats">
+            <div><span class="k">收入</span><span class="v n" style="color:#FF6259">+18,795.00</span></div>
+            <div><span class="k">支出</span><span class="v n">−5,251.40</span></div>
+          </div></div>
+          <div class="cap"><span>11月2日 周一</span><span class="n">+108.11</span></div>
+          <div class="grp list" data-list="C"></div>
+        </div>
+        <div class="fab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div>
+        <div class="tabs" data-tabs></div>
+      </div></div>
+    </div>
+  </section>
+
+  <p class="foot">这三张都是静态样稿，只画了首页。功能（导入、记一笔、分类饼图、还款、订阅）都不变，只换外观。你也可以只挑局部，比如“A 的首页 + B 的列表”。</p>
+</div>
+
+<script>
+(function () {
+  // A shared step series: low start, salary jump, slow spending, rent drop near the end.
+  function series() {
+    let a = 20261103; const rnd = () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    const pts = []; let v = 77378;
+    for (let i = 0; i <= 60; i++) {
+      if (i === 7) v += 18500;
+      else if (i === 55) v -= 4800;
+      else if (i > 0) v -= 30 + rnd() * 160;
+      if (i === 24 || i === 41) v += 200;
+      pts.push(v);
+    }
+    return pts;
+  }
+  const S = series();
+  const styles = {
+    A: { stroke: '#E5372E', fill: null, base: '#D5D8DD', pad: 8 },
+    B: { stroke: '#E5372E', fill: 'rgba(229,55,46,0.10)', base: '#D9DADF', pad: 8 },
+    C: { stroke: '#FF6259', fill: 'url(#gC)', base: '#3A3D44', pad: 8 }
+  };
+  for (const svg of document.querySelectorAll('svg.chart')) {
+    const st = styles[svg.dataset.style]; const vb = svg.viewBox.baseVal; const W = vb.width, H = vb.height;
+    const min = Math.min(...S), max = Math.max(...S);
+    const X = (i) => (i / (S.length - 1)) * W; const Y = (v) => st.pad + (max - v) / (max - min) * (H - st.pad * 2);
+    let d = `M0,${Y(S[0]).toFixed(1)}`;
+    for (let i = 1; i < S.length; i++) d += `H${X(i).toFixed(1)}V${Y(S[i]).toFixed(1)}`;
+    const NS = 'http://www.w3.org/2000/svg';
+    const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); svg.appendChild(e); return e; };
+    if (svg.dataset.style === 'C') { const defs = mk('defs', {}); defs.innerHTML = '<linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF6259" stop-opacity="0.32"/><stop offset="1" stop-color="#FF6259" stop-opacity="0"/></linearGradient>'; }
+    mk('line', { x1: 0, x2: W, y1: Y(S[0]), y2: Y(S[0]), stroke: st.base, 'stroke-width': 1, 'stroke-dasharray': '2 4', 'vector-effect': 'non-scaling-stroke' });
+    if (st.fill) mk('path', { d: d + `V${H}H0Z`, fill: st.fill });
+    mk('path', { d, fill: 'none', stroke: st.stroke, 'stroke-width': 2, 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' });
+  }
+  const rows = [
+    { t: '盒马', s: '餐饮 · 支付宝 · 18:46', a: '−37.75', c: '#2a78d6', ic: 'food' },
+    { t: '微信红包', s: '红包转账 · 微信 · 14:08', a: '+200.00', in: true, c: '#1baf7a', ic: 'gift' },
+    { t: '楼下面馆', s: '餐饮 · 微信 · 11:42', a: '−34.42', c: '#2a78d6', ic: 'food' },
+    { t: '星巴克', s: '餐饮 · 微信 · 09:02', a: '−19.72', c: '#2a78d6', ic: 'food' },
+    { t: '滴滴出行', s: '交通 · 微信 · 08:31', a: '−26.80', c: '#eda100', ic: 'car' }
+  ];
+  const IC = {
+    food: '<path d="M7 3v8m-2.5-8v4.5a2.5 2.5 0 0 0 5 0V3M7 11v10M16.5 21V3c-2 1-3 3.5-3 7h3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>',
+    gift: '<path d="M4 10h16v10H4zM3 7h18v3H3zM12 7v13M12 7c-1-3-5-3.5-5-1s5 1 5 1zm0 0c1-3 5-3.5 5-1s-5 1-5 1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+    car: '<path d="M5 16V11l2-5h10l2 5v5M5 16h14M5 16v2.5M19 16v2.5M3.5 11h17" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="13.5" r="1" fill="currentColor"/><circle cx="16" cy="13.5" r="1" fill="currentColor"/>'
+  };
+  for (const box of document.querySelectorAll('[data-list]')) {
+    const k = box.dataset.list;
+    for (const r of rows) {
+      const row = document.createElement('div'); row.className = 'row';
+      let lead = '';
+      if (k === 'B') lead = `<i style="background:${r.c}"></i>`;
+      if (k === 'C') lead = `<i style="color:#B9BCC3"><svg viewBox="0 0 24 24" aria-hidden="true">${IC[r.ic]}</svg></i>`;
+      row.innerHTML = `${lead}<div style="min-width:0"><div class="t">${r.t}</div><div class="s">${r.s}</div></div><div class="a n${r.in ? ' in' : ''}">${r.a}</div>`;
+      box.appendChild(row);
+    }
+  }
+  const TAB = [
+    ['走势', '<path d="M3 17.5h4.5v-5.5H12v3h4.5V7.5H21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>'],
+    ['分类', '<circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 3.75V12l6.6 4.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>'],
+    ['还款', '<rect x="3" y="5.5" width="18" height="13" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 10h18M7 14.5h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>'],
+    ['订阅', '<path d="M19 9a7.5 7.5 0 0 0-13.8-1.6M5 15a7.5 7.5 0 0 0 13.8 1.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4.5 3.8v3.9h3.9M19.5 20.2v-3.9h-3.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>']
+  ];
+  for (const t of document.querySelectorAll('[data-tabs]')) t.innerHTML = TAB.map(([n, p], i) => `<span class="${i === 0 ? 'on' : ''}"><svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>${n}</span>`).join('');
+})();
+</script>
